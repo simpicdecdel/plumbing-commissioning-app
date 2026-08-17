@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Current requirements
+    url: https://github.com/simpicdecdel/plumbing-commissioning-app/blob/main/docs/requirements.md
+    about: Review the accepted and provisional requirements before proposing a change.

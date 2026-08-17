@@ -1,0 +1,97 @@
+name: Requirement proposal
+description: Suggest a new capability or a change to an existing requirement
+title: "[Requirement]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before proposing a solution. Do not include customer names, addresses, photographs or live commissioning records because this repository is public.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is happening today, and why is it a problem?
+      placeholder: A technician currently has to...
+    validations:
+      required: true
+  - type: input
+    id: affected-user
+    attributes:
+      label: Affected user
+      description: Who experiences this problem?
+      placeholder: Field technician, office administrator, customer...
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should the user be able to achieve? Avoid prescribing a technical solution unless necessary.
+      placeholder: The user should be able to...
+    validations:
+      required: true
+  - type: dropdown
+    id: appliance-type
+    attributes:
+      label: Appliance type
+      options:
+        - All or not appliance-specific
+        - Hot water system
+        - Tapware or mixer
+        - Toilet or cistern
+        - Dishwasher
+        - Washing machine
+        - Water filter
+        - Pump
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: suggested-priority
+    attributes:
+      label: Suggested priority
+      description: The product owner will confirm the final priority.
+      options:
+        - Must
+        - Should
+        - Could
+        - Later
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and frequency
+      description: How often does this occur? Include non-sensitive examples or links to authoritative requirements.
+  - type: textarea
+    id: compliance
+    attributes:
+      label: Safety, regulatory or privacy considerations
+      description: Identify any licences, manufacturer instructions, standards, safety risks or customer data involved. Say "None known" if uncertain.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Suggested acceptance criteria
+      description: What observable results would prove that the requirement works?
+      placeholder: |
+        - Given...
+        - When...
+        - Then...
+    validations:
+      required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Scope exclusions and alternatives
+      description: What is deliberately outside this proposal? What other options were considered?
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing requirements and issues for duplicates.
+          required: true
+        - label: I removed customer and other sensitive information.
+          required: true

@@ -2,6 +2,15 @@
 
 An offline-first, installable web app for a small Australian plumbing business to record appliance commissioning in the field.
 
+## Product documentation
+
+- [Current requirements](docs/requirements.md)
+- [Product decision log](docs/decisions.md)
+- [Requirements collaboration workflow](docs/collaboration-workflow.md)
+- [Glossary](docs/glossary.md)
+
+Use the repository's **Requirement proposal** issue form to suggest additions or changes. Accepted requirements are added to `docs/requirements.md` with a stable identifier and testable acceptance criteria.
+
 ## MVP capabilities
 
 - Create, edit and complete commissioning records.
