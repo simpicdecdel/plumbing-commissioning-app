@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b5d67">
+  <meta name="description" content="Offline plumbing appliance commissioning records for field technicians.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Plumbing Commissioning</title>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">FIELD RECORDS</p>
+      <h1>Plumbing Commissioning</h1>
+    </div>
+    <div class="header-actions">
+      <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
+      <button id="installButton" class="button button-secondary" type="button" hidden>Install app</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <nav class="tabs" aria-label="Primary">
+      <button class="tab is-active" type="button" data-view="records">Records</button>
+      <button class="tab" type="button" data-view="form">New commissioning</button>
+    </nav>
+
+    <section id="recordsView" class="view">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">ON THIS DEVICE</p>
+          <h2>Commissioning records</h2>
+        </div>
+        <button id="newRecordButton" class="button button-primary" type="button">New record</button>
+      </div>
+      <div class="toolbar">
+        <label class="search-field">
+          <span class="sr-only">Search records</span>
+          <input id="recordSearch" type="search" placeholder="Search customer, address, job or appliance">
+        </label>
+        <button id="exportButton" class="button button-secondary" type="button">Export backup</button>
+      </div>
+      <p id="storageNotice" class="notice">Records stay in this browser unless you export a backup.</p>
+      <div id="recordList" class="record-list"></div>
+    </section>
+
+    <section id="formView" class="view" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">FIELD CHECKLIST</p>
+          <h2 id="formTitle">New commissioning</h2>
+        </div>
+        <button id="backButton" class="button button-secondary" type="button">Back to records</button>
+      </div>
+
+      <form id="commissioningForm" novalidate>
+        <input id="recordId" type="hidden">
+
+        <fieldset>
+          <legend>Job details</legend>
+          <div class="form-grid">
+            <label>Customer / site name <input id="customer" name="customer" required autocomplete="organization"></label>
+            <label>Job reference <input id="jobReference" name="jobReference" autocomplete="off"></label>
+            <label class="span-2">Site address <textarea id="address" name="address" rows="2" required autocomplete="street-address"></textarea></label>
+            <label>Commissioning date <input id="commissioningDate" name="commissioningDate" type="date" required></label>
+            <label>Technician <input id="technician" name="technician" required autocomplete="name"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Appliance</legend>
+          <div class="form-grid">
+            <label>Appliance type
+              <select id="applianceType" name="applianceType" required>
+                <option value="">Select…</option>
+                <option>Hot water system</option>
+                <option>Tapware / mixer</option>
+                <option>Toilet / cistern</option>
+                <option>Dishwasher</option>
+                <option>Washing machine</option>
+                <option>Water filter</option>
+                <option>Pump</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label>Location <input id="applianceLocation" name="applianceLocation" placeholder="e.g. Ground floor kitchen"></label>
+            <label>Manufacturer <input id="manufacturer" name="manufacturer"></label>
+            <label>Model <input id="model" name="model"></label>
+            <label>Serial number <input id="serialNumber" name="serialNumber"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Installation checks</legend>
+          <p class="field-help">Mark every applicable check. Add detail in notes for any issue or item not applicable.</p>
+          <div class="check-grid">
+            <label><input id="secure" name="secure" type="checkbox"> Appliance secure and level</label>
+            <label><input id="connections" name="connections" type="checkbox"> Connections correct and accessible</label>
+            <label><input id="leakFree" name="leakFree" type="checkbox"> No visible leaks</label>
+            <label><input id="isolation" name="isolation" type="checkbox"> Isolation valves fitted and working</label>
+            <label><input id="drainage" name="drainage" type="checkbox"> Drainage / discharge correct</label>
+            <label><input id="manufacturerInstructions" name="manufacturerInstructions" type="checkbox"> Manufacturer instructions followed</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Commissioning results</legend>
+          <div class="form-grid form-grid-3">
+            <label>Static pressure (kPa) <input id="staticPressure" name="staticPressure" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Flow pressure (kPa) <input id="flowPressure" name="flowPressure" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Flow rate (L/min) <input id="flowRate" name="flowRate" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Outlet temperature (°C) <input id="outletTemperature" name="outletTemperature" type="number" step="0.1" inputmode="decimal"></label>
+            <label>Test outcome
+              <select id="outcome" name="outcome" required>
+                <option value="">Select…</option>
+                <option value="Passed">Passed</option>
+                <option value="Passed with actions">Passed with actions</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </label>
+          </div>
+          <label>Notes, defects and actions <textarea id="notes" name="notes" rows="5" placeholder="Record readings, outstanding work and anything not applicable."></textarea></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Handover</legend>
+          <div class="check-grid">
+            <label><input id="operationDemonstrated" name="operationDemonstrated" type="checkbox"> Operation demonstrated</label>
+            <label><input id="documentsProvided" name="documentsProvided" type="checkbox"> Instructions / warranty provided</label>
+            <label><input id="siteLeftClean" name="siteLeftClean" type="checkbox"> Work area left clean</label>
+          </div>
+          <div class="form-grid">
+            <label>Customer representative <input id="customerRepresentative" name="customerRepresentative"></label>
+            <label>Handover date <input id="handoverDate" name="handoverDate" type="date"></label>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <p id="saveStatus" class="save-status" aria-live="polite">Drafts save on this device.</p>
+          <div>
+            <button id="saveDraftButton" class="button button-secondary" type="button">Save draft</button>
+            <button class="button button-primary" type="submit">Complete record</button>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <template id="emptyStateTemplate">
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✓</div>
+      <h3>No records yet</h3>
+      <p>Create the first commissioning record. It will remain available offline on this device.</p>
+    </div>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

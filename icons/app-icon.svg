@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Plumbing Commissioning">
+  <rect width="512" height="512" rx="96" fill="#0b5d67"/>
+  <path d="M158 127h196v49H158zM181 176h150v64c0 65-33 110-75 145-42-35-75-80-75-145z" fill="#fff"/>
+  <path d="M219 240h74v29h-74zm22-37h30v103h-30z" fill="#0b5d67"/>
+  <circle cx="256" cy="352" r="30" fill="#f0a23a"/>
+</svg>
