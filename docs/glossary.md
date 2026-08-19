@@ -10,7 +10,7 @@ A requirement approved as part of the product baseline.
 
 ## Appliance
 
-A plumbing or water-connected product being commissioned. The exact supported appliance catalogue remains provisional.
+A legacy term from the first MVP. The current product distinguishes a plant from the individual units operating within it.
 
 ## Commissioning
 
@@ -31,6 +31,14 @@ Minimum viable product. The smallest version used to test the workflow and requi
 ## Offline-first
 
 Designed so core functions remain available without a network connection after the application has first loaded successfully.
+
+## Plant
+
+The collection of equipment commissioned as one operating system at a site. One commissioning record currently represents one plant.
+
+## Unit
+
+An individually identifiable item of equipment operating within a plant. A unit can carry its own fault or exception without requiring a separate commissioning record.
 
 ## Progressive Web App (PWA)
 

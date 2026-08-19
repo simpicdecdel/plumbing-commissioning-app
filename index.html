@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b5d67">
-  <meta name="description" content="Offline plumbing appliance commissioning records for field technicians.">
+  <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
@@ -39,11 +39,11 @@
       <div class="toolbar">
         <label class="search-field">
           <span class="sr-only">Search records</span>
-          <input id="recordSearch" type="search" placeholder="Search customer, address, job or appliance">
+          <input id="recordSearch" type="search" placeholder="Search site, job, plant or unit">
         </label>
         <button id="exportButton" class="button button-secondary" type="button">Export backup</button>
       </div>
-      <p id="storageNotice" class="notice">Records stay in this browser unless you export a backup.</p>
+      <p id="storageNotice" class="notice">Records stay in IndexedDB on this device unless you export a backup.</p>
       <div id="recordList" class="record-list"></div>
     </section>
 
@@ -71,33 +71,34 @@
         </fieldset>
 
         <fieldset>
-          <legend>Appliance</legend>
+          <legend>Plant</legend>
+          <p class="field-help">One record covers one plant at a site. Add every unit that operates as part of that plant.</p>
           <div class="form-grid">
-            <label>Appliance type
-              <select id="applianceType" name="applianceType" required>
-                <option value="">Select…</option>
-                <option>Hot water system</option>
-                <option>Tapware / mixer</option>
-                <option>Toilet / cistern</option>
-                <option>Dishwasher</option>
-                <option>Washing machine</option>
-                <option>Water filter</option>
-                <option>Pump</option>
+            <label>Plant name / reference <input id="plantName" name="plantName" required placeholder="e.g. Plant room 1 hot water plant"></label>
+            <label>Plant location <input id="plantLocation" name="plantLocation" placeholder="e.g. Basement plant room"></label>
+            <label>Plant type
+              <select id="plantType" name="plantType" required>
+                <option>Commercial hot water plant</option>
                 <option>Other</option>
               </select>
             </label>
-            <label>Location <input id="applianceLocation" name="applianceLocation" placeholder="e.g. Ground floor kitchen"></label>
-            <label>Manufacturer <input id="manufacturer" name="manufacturer"></label>
-            <label>Model <input id="model" name="model"></label>
-            <label>Serial number <input id="serialNumber" name="serialNumber"></label>
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Units</legend>
+          <div class="fieldset-heading">
+            <p class="field-help">Record faults and exceptions against the affected unit. Plant-level notes remain below.</p>
+            <button id="addUnitButton" class="button button-secondary" type="button">Add unit</button>
+          </div>
+          <div id="unitsList" class="units-list"></div>
         </fieldset>
 
         <fieldset>
           <legend>Installation checks</legend>
           <p class="field-help">Mark every applicable check. Add detail in notes for any issue or item not applicable.</p>
           <div class="check-grid">
-            <label><input id="secure" name="secure" type="checkbox"> Appliance secure and level</label>
+            <label><input id="secure" name="secure" type="checkbox"> Plant equipment secure and level</label>
             <label><input id="connections" name="connections" type="checkbox"> Connections correct and accessible</label>
             <label><input id="leakFree" name="leakFree" type="checkbox"> No visible leaks</label>
             <label><input id="isolation" name="isolation" type="checkbox"> Isolation valves fitted and working</label>
@@ -153,10 +154,35 @@
     <div class="empty-state">
       <div class="empty-icon" aria-hidden="true">✓</div>
       <h3>No records yet</h3>
-      <p>Create the first commissioning record. It will remain available offline on this device.</p>
+      <p>Create the first plant commissioning record. It will remain available offline on this device.</p>
     </div>
   </template>
 
+  <template id="unitTemplate">
+    <article class="unit-card">
+      <div class="unit-heading">
+        <h3 class="unit-number">Unit</h3>
+        <button class="button button-danger button-small" type="button" data-action="remove-unit">Remove</button>
+      </div>
+      <div class="form-grid form-grid-3">
+        <label>Unit label <input data-unit-field="label" required placeholder="e.g. HWS-01"></label>
+        <label>Manufacturer <input data-unit-field="manufacturer"></label>
+        <label>Model <input data-unit-field="model"></label>
+        <label>Serial number <input data-unit-field="serialNumber"></label>
+        <label>Unit result
+          <select data-unit-field="status" required>
+            <option value="Operational">Operational</option>
+            <option value="Fault / exception">Fault / exception</option>
+            <option value="Not commissioned">Not commissioned</option>
+          </select>
+        </label>
+        <label class="span-2">Fault / exception detail <textarea data-unit-field="exception" rows="2" placeholder="Required when a fault or exception is selected"></textarea></label>
+      </div>
+    </article>
+  </template>
+
+  <script src="vendor/dexie.min.js" defer></script>
+  <script src="storage.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>

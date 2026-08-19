@@ -1,14 +1,14 @@
 # Plumbing Commissioning App Requirements
 
-Version: 0.1
+Version: 0.2
 
-Last updated: 17 August 2026
+Last updated: 19 August 2026
 
 Status: Current MVP baseline
 
 ## 1. Purpose
 
-The product provides a mobile-friendly appliance commissioning application for a small Australian family plumbing business. It supports technicians recording commissioning work at customer sites, including when an internet connection is unavailable.
+The product provides a mobile-friendly plant commissioning application for a small Australian commercial plumbing business. It supports technicians recording one plant and its multiple units at a customer site, including when an internet connection is unavailable.
 
 ## 2. Requirement conventions
 
@@ -33,14 +33,14 @@ Priorities use Must, Should, Could and Later.
 
 ## 3. Business requirements
 
-### REQ-BUS-001: Field commissioning records
+### REQ-BUS-001: Plant commissioning records
 
 - Status: Accepted
 - Priority: Must
-- Requirement: The product must allow a plumbing technician to record appliance commissioning work while on site.
+- Requirement: The product must allow a plumbing technician to record plant commissioning work while on site.
 - Acceptance criteria:
   - A technician can create and complete a commissioning record on a mobile phone.
-  - The record captures the job, appliance, installation checks, results and handover information.
+  - The record captures the site or job, one plant, multiple units, installation checks, unit exceptions, plant result and handover information.
 
 ### REQ-BUS-002: Offline field use
 
@@ -118,7 +118,7 @@ Priorities use Must, Should, Could and Later.
 - Priority: Should
 - Requirement: A technician must be able to search records stored on the device.
 - Acceptance criteria:
-  - Search matches customer or site name, address, job reference, appliance type, manufacturer and model.
+  - Search matches customer or site name, address, job reference, plant name or location, unit label, manufacturer, model and serial number.
   - Results update as the search text changes.
 
 ### REQ-F-007: Print a record
@@ -173,117 +173,108 @@ Priorities use Must, Should, Could and Later.
 - Acceptance criteria:
   - The status updates when connectivity changes.
 
-## 5. Record data requirements
-
-### REQ-D-001: One appliance per record
-
-- Status: Provisional
-- Priority: Must
-- Requirement: One commissioning record represents one appliance at one site.
-- Decision needed: Confirm whether a job containing several appliances should use separate records or a parent job with multiple appliance records.
-
-### REQ-D-002: Job details
-
-- Status: Provisional
-- Priority: Must
-- Requirement: A record captures:
-  - Customer or site name, mandatory
-  - Site address, mandatory
-  - Commissioning date, mandatory
-  - Technician, mandatory
-  - Job reference, optional
-
-### REQ-D-003: Appliance details
-
-- Status: Provisional
-- Priority: Must
-- Requirement: A record captures:
-  - Appliance type, mandatory
-  - Appliance location, optional
-  - Manufacturer, optional
-  - Model, optional
-  - Serial number, optional
-
-### REQ-D-004: Appliance types
-
-- Status: Provisional
-- Priority: Must
-- Requirement: The MVP provides these appliance types:
-  - Hot water system
-  - Tapware or mixer
-  - Toilet or cistern
-  - Dishwasher
-  - Washing machine
-  - Water filter
-  - Pump
-  - Other
-- Decision needed: Confirm the actual appliance types commissioned by the business.
-
-### REQ-D-005: Installation checks
-
-- Status: Provisional
-- Priority: Must
-- Requirement: A technician can record whether:
-  - The appliance is secure and level.
-  - Connections are correct and accessible.
-  - There are no visible leaks.
-  - Isolation valves are fitted and working.
-  - Drainage or discharge is correct.
-  - Manufacturer instructions were followed.
-- Acceptance criteria:
-  - Each check can be marked independently.
-  - Notes can explain defects, actions and items that do not apply.
-
-### REQ-D-006: Commissioning measurements
-
-- Status: Provisional
-- Priority: Must
-- Requirement: A technician can record:
-  - Static pressure in kPa
-  - Flow pressure in kPa
-  - Flow rate in litres per minute
-  - Outlet temperature in degrees Celsius
-- Current rule: Measurements are optional because they do not apply to every appliance.
-- Decision needed: Define mandatory measurements and acceptable ranges for each appliance type.
-
-### REQ-D-007: Test outcome
-
-- Status: Provisional
-- Priority: Must
-- Requirement: Every completed record has one of these outcomes:
-  - Passed
-  - Passed with actions
-  - Failed
-
-### REQ-D-008: Notes, defects and actions
+### REQ-F-013: Manage plant units
 
 - Status: Accepted
 - Priority: Must
-- Requirement: A technician can record free-text notes, defects and required actions.
+- Requirement: A technician must be able to add and remove multiple units within one plant commissioning record.
+- Acceptance criteria:
+  - Every unit has a stable identifier within the record.
+  - Completion requires at least one unit label.
+  - Each unit can record its own operating state and fault or exception detail.
 
-### REQ-D-009: Handover details
+### REQ-F-014: Migrate earlier local records
+
+- Status: Accepted
+- Priority: Must
+- Requirement: The application must make a practical attempt to preserve records stored by the previous one-appliance localStorage version.
+- Acceptance criteria:
+  - Each earlier record becomes one plant record containing one unit.
+  - Earlier failed outcomes become a unit fault or exception.
+  - Earlier localStorage values are removed only after the IndexedDB transaction succeeds.
+
+### REQ-F-015: Storage boundary
+
+- Status: Accepted
+- Priority: Must
+- Requirement: UI code must use a data-access abstraction rather than browser persistence APIs directly.
+- Acceptance criteria:
+  - Record, draft and migration operations are exposed through the storage service.
+  - `app.js` contains no direct `localStorage` or IndexedDB calls.
+
+## 5. Record data requirements
+
+### REQ-D-001: One plant per commissioning record
+
+- Status: Accepted
+- Priority: Must
+- Requirement: One commissioning record represents one plant at one site or job. A site may have multiple plants, represented by separate commissioning records.
+
+### REQ-D-002: Site and job details
+
+- Status: Provisional
+- Priority: Must
+- Requirement: A record currently captures customer or site name, site address, commissioning date and technician as mandatory fields, with job reference optional.
+- Assumption to confirm: These fields are sufficient to identify and retrieve the job during field testing.
+
+### REQ-D-003: Plant details
+
+- Status: Provisional
+- Priority: Must
+- Requirement: A record currently captures a mandatory plant name or reference and plant type, with plant location optional.
+- Assumption to confirm: A free-text plant name is preferable to a separate plant register for the MVP.
+
+### REQ-D-004: Multiple units within a plant
+
+- Status: Accepted
+- Priority: Must
+- Requirement: A plant contains one or more individually identifiable units within the same commissioning record.
+- Acceptance criteria:
+  - A technician can add and remove units.
+  - Each unit can capture a label, manufacturer, model and serial number.
+  - At least one unit label is required for completion.
+
+### REQ-D-005: Plant installation checks
+
+- Status: Provisional
+- Priority: Must
+- Requirement: The existing generic checks are recorded once at plant level: secure and level, connections, visible leaks, isolation, drainage or discharge, and manufacturer instructions.
+- Assumption to confirm: These checks apply at plant level and remain useful for commercial hot water commissioning.
+
+### REQ-D-006: Plant commissioning measurements
+
+- Status: Provisional
+- Priority: Must
+- Requirement: Static pressure, flow pressure, flow rate and outlet temperature are recorded once at plant level and remain optional.
+- Decision needed: Confirm which measurements apply to the plant, which apply to individual units, and which ranges or evidence are mandatory.
+
+### REQ-D-007: Plant outcome
+
+- Status: Provisional
+- Priority: Must
+- Requirement: Every completed plant record has one outcome: Passed, Passed with actions, or Failed.
+- Assumption to confirm: These three plant outcomes reflect the language used by the business and its customers.
+
+### REQ-D-008: Unit faults and exceptions
+
+- Status: Accepted
+- Priority: Must
+- Requirement: Each unit can be marked Operational, Fault / exception, or Not commissioned. Fault or exception detail is recorded against the affected unit.
+- Assumption to confirm: The three current unit states are sufficient for field testing.
+
+### REQ-D-009: Plant notes and handover
 
 - Status: Provisional
 - Priority: Should
-- Requirement: A technician can record:
-  - Operation demonstrated
-  - Instructions or warranty documents provided
-  - Work area left clean
-  - Customer representative name
-  - Handover date
+- Requirement: A record can capture plant-level notes, defects and actions, plus operation demonstrated, documents provided, work area left clean, customer representative and handover date.
+- Assumption to confirm: These handover fields remain useful and do not duplicate a later approval or signature step.
 
 ### REQ-D-010: Minimum completion fields
 
 - Status: Provisional
 - Priority: Must
-- Requirement: Completion currently requires:
-  - Customer or site name
-  - Site address
-  - Commissioning date
-  - Technician
-  - Appliance type
-  - Test outcome
-- Decision needed: Confirm whether checklist items, measurements, notes, customer acknowledgement or technician acknowledgement must also be mandatory.
+- Requirement: Completion currently requires site name, site address, commissioning date, technician, plant name, plant type, at least one unit label, every unit state, plant outcome, and exception detail for any unit marked Fault / exception.
+- Decision needed: Confirm whether checklist items, readings, acknowledgements, photos or signatures must also be mandatory.
 
 ## 6. Non-functional requirements
 
@@ -317,9 +308,18 @@ Priorities use Must, Should, Could and Later.
 - Priority: Must
 - Requirement: The product must clearly warn that locally stored records can be lost and should be backed up.
 
+### REQ-NF-006: IndexedDB offline persistence
+
+- Status: Accepted
+- Priority: Must
+- Requirement: Records and autosaved drafts must use IndexedDB through the pinned Dexie library and remain available without a network connection.
+- Acceptance criteria:
+  - Dexie is bundled in the application shell rather than loaded from a remote CDN at runtime.
+  - The service worker caches Dexie and the storage layer.
+
 ## 7. Security, privacy and compliance
 
-### REQ-SEC-001: Local storage disclosure
+### REQ-SEC-001: Local device storage disclosure
 
 - Status: Accepted
 - Priority: Must
@@ -345,11 +345,11 @@ Priorities use Must, Should, Could and Later.
 - Priority: Must
 - Requirement: Customer names, addresses, photographs, live records and other sensitive information must not be entered in the public repository, issues or project board.
 
-### REQ-COMP-001: Appliance-specific rules
+### REQ-COMP-001: Plant and unit-specific rules
 
 - Status: Proposed
 - Priority: Must before claiming compliance
-- Requirement: Required checks, measurements, acceptable ranges and evidence must be defined for each supported appliance type.
+- Requirement: Required checks, measurements, acceptable ranges and evidence must be defined for each supported plant and unit type.
 
 ### REQ-COMP-002: Regulatory basis
 
@@ -374,21 +374,21 @@ The following capabilities are outside the current MVP until separately accepted
 - Multiple users and user administration
 - Record locking and audit history
 - Business branding and configurable company details
-- Multiple appliances grouped under one job
-- Appliance-specific forms and validation
+- A shared site or job record that groups several plant records
+- Plant or unit-specific forms and validation
 - Reporting and management dashboards
 
 ## 9. Open decisions
 
-1. Which appliance types does the business commission?
-2. Which checks and measurements are mandatory for each appliance type?
+1. Which plant types and unit types does the business commission?
+2. Which checks and measurements belong at plant level and which belong at unit level?
 3. What values or ranges constitute a pass, warning or failure?
 4. Are photographs, customer signatures or technician signatures required?
 5. What final document must be provided to the customer?
 6. Must records synchronise between technicians and the office?
 7. How long must records be retained?
 8. Who may create, edit, complete, reopen or delete records?
-9. Should multiple appliances be grouped under one job?
+9. Should several plant records share a reusable site or job record?
 10. Which regulatory sources must the application enforce or reference?
 
 ## 10. Change process
