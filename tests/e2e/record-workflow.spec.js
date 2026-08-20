@@ -1,0 +1,68 @@
+import { expect, test } from '@playwright/test';
+
+async function openNewRecord(page) {
+  await page.getByRole('button', { name: 'New record' }).click();
+  await expect(page.getByRole('heading', { name: 'New commissioning' })).toBeVisible();
+}
+
+async function fillRequiredRecord(page, overrides = {}) {
+  await page.locator('#customer').fill(overrides.siteName || 'iPhone Test Site');
+  await page.locator('#address').fill('10 Test Street, Sydney NSW');
+  await page.locator('#technician').fill('Mobile Tester');
+  await page.locator('#plantName').fill('Plant Room 1');
+  await page.locator('[data-unit-field="label"]').first().fill(overrides.unitLabel || 'HWS-IPHONE-01');
+  await page.locator('[data-unit-field="serialNumber"]').first().fill(overrides.serialNumber || 'IOS-0001');
+  await page.locator('#outcome').selectOption('Passed');
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#networkStatus')).toHaveText('Online');
+});
+
+test('completes, persists and searches a commissioning record', async ({ page }) => {
+  await openNewRecord(page);
+  await fillRequiredRecord(page);
+  await page.getByRole('button', { name: 'Complete record' }).click();
+
+  const record = page.locator('.record-card').filter({ hasText: 'iPhone Test Site' });
+  await expect(record).toContainText('Plant Room 1');
+  await expect(record).toContainText('Passed');
+
+  await page.reload();
+  await expect(page.locator('.record-card').filter({ hasText: 'iPhone Test Site' })).toBeVisible();
+
+  await page.locator('#recordSearch').fill('IOS-0001');
+  await expect(page.locator('.record-card')).toHaveCount(1);
+  await expect(page.locator('.record-card')).toContainText('iPhone Test Site');
+});
+
+test('restores an autosaved draft after reload', async ({ page }) => {
+  await openNewRecord(page);
+  await page.locator('#customer').fill('Autosaved iPhone Site');
+  await page.locator('#plantName').fill('Draft Plant');
+  await expect(page.locator('#saveStatus')).toHaveText('Draft saved on this device.');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'New record' }).click();
+  await expect(page.locator('#customer')).toHaveValue('Autosaved iPhone Site');
+  await expect(page.locator('#plantName')).toHaveValue('Draft Plant');
+});
+
+test('requires detail for a unit fault or exception', async ({ page }) => {
+  await openNewRecord(page);
+  await fillRequiredRecord(page, { siteName: 'Fault Validation Site' });
+
+  const unitStatus = page.locator('[data-unit-field="status"]').first();
+  const exception = page.locator('[data-unit-field="exception"]').first();
+  await unitStatus.selectOption('Fault / exception');
+  await expect(exception).toHaveAttribute('required', '');
+
+  await page.getByRole('button', { name: 'Complete record' }).click();
+  await expect(page.getByRole('heading', { name: 'New commissioning' })).toBeVisible();
+
+  await exception.fill('Burner failed during commissioning.');
+  await page.locator('#outcome').selectOption('Failed');
+  await page.getByRole('button', { name: 'Complete record' }).click();
+  await expect(page.locator('.record-card').filter({ hasText: 'Fault Validation Site' })).toContainText('1 fault / exception');
+});
