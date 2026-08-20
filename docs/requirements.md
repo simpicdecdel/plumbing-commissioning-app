@@ -151,10 +151,16 @@ Priorities use Must, Should, Could and Later.
 
 ### REQ-F-010: Restore a backup
 
-- Status: Proposed
+- Status: Accepted
 - Priority: Must before operational reliance
-- Requirement: An authorised user should be able to restore records from a valid exported backup.
-- Acceptance criteria: To be defined after the record schema is confirmed.
+- Requirement: An authorised user must be able to restore records from a valid exported backup. Access control remains governed by REQ-SEC-002.
+- Acceptance criteria:
+  - The application accepts schema version 2 JSON backups produced by the export function.
+  - The application validates the entire backup before changing stored records.
+  - Restoring merges records by ID. New IDs are added and matching IDs are replaced.
+  - Records on the device that are absent from the backup are retained.
+  - The application asks for confirmation and reports added and replaced record counts.
+  - Invalid, unsupported or duplicate-ID backups do not change stored records.
 
 ### REQ-F-011: Install the application
 

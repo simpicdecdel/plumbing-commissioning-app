@@ -17,7 +17,7 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-      <span class="app-version" aria-label="Application version 0.2.0">v0.2.0</span>
+        <span class="app-version" aria-label="Application version 0.3.0">v0.3.0</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <button id="installButton" class="button button-secondary" type="button" hidden>Install app</button>
     </div>
@@ -43,6 +43,8 @@
           <input id="recordSearch" type="search" placeholder="Search site, job, plant or unit">
         </label>
         <button id="exportButton" class="button button-secondary" type="button">Export backup</button>
+        <button id="restoreButton" class="button button-secondary" type="button">Restore backup</button>
+        <input id="restoreFile" class="sr-only" type="file" accept="application/json,.json">
       </div>
       <p id="storageNotice" class="notice">Records stay in IndexedDB on this device unless you export a backup.</p>
       <div id="recordList" class="record-list"></div>

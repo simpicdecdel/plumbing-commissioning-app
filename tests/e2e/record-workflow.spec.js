@@ -66,3 +66,40 @@ test('requires detail for a unit fault or exception', async ({ page }) => {
   await page.getByRole('button', { name: 'Complete record' }).click();
   await expect(page.locator('.record-card').filter({ hasText: 'Fault Validation Site' })).toContainText('1 fault / exception');
 });
+
+test('restores a valid backup and replaces a matching record ID', async ({ page }) => {
+  await openNewRecord(page);
+  await fillRequiredRecord(page, { siteName: 'Existing Device Site', unitLabel: 'EXISTING-01' });
+  await page.getByRole('button', { name: 'Complete record' }).click();
+
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    schemaVersion: 2,
+    records: [{
+      id: 'restore-test-record', schemaVersion: 2, status: 'Completed',
+      job: { siteName: 'Restored iPhone Site', reference: 'RESTORE-1', address: '20 Backup Road', commissioningDate: '2026-08-20', technician: 'Restore Tester' },
+      plant: { name: 'Restored Plant', location: 'Roof', type: 'Commercial hot water plant' },
+      units: [{ id: 'restore-unit', label: 'RESTORE-HWS-01', manufacturer: '', model: '', serialNumber: '', status: 'Operational', exception: '' }],
+      installationChecks: {}, results: { outcome: 'Passed' }, handover: {}, updatedAt: '2026-08-20T00:00:00.000Z'
+    }]
+  };
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#restoreFile').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
+  await expect(page.locator('#storageNotice')).toHaveText('Backup restored: 1 added, 0 replaced.');
+  await expect(page.locator('.record-card').filter({ hasText: 'Restored iPhone Site' })).toBeVisible();
+  await expect(page.locator('.record-card').filter({ hasText: 'Existing Device Site' })).toBeVisible();
+
+  backup.records[0].job.siteName = 'Updated Restored Site';
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#restoreFile').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
+  await expect(page.locator('#storageNotice')).toHaveText('Backup restored: 0 added, 1 replaced.');
+  await expect(page.locator('.record-card').filter({ hasText: 'Updated Restored Site' })).toBeVisible();
+  await expect(page.locator('.record-card').filter({ hasText: 'Restored iPhone Site' })).toHaveCount(0);
+});
+
+test('rejects an invalid backup without changing records', async ({ page }) => {
+  await page.locator('#restoreFile').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
+  await expect(page.locator('#storageNotice')).toHaveText('Backup not restored: The file is not valid JSON.');
+  await expect(page.locator('.record-card')).toHaveCount(0);
+});

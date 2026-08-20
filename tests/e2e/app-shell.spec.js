@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the current release without horizontal overflow', async ({ page }) => {
   await expect(page).toHaveTitle('Plumbing Commissioning');
-  await expect(page.getByText('v0.2.0', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.3.0', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Commissioning records' })).toBeVisible();
 
   const layout = await page.evaluate(() => ({
@@ -40,7 +40,7 @@ test('serves a valid installable shell', async ({ request }) => {
   const workerResponse = await request.get('/service-worker.js');
   expect(workerResponse.ok()).toBe(true);
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain("plumbing-commissioning-v0.2.0");
+  expect(workerSource).toContain("plumbing-commissioning-v0.3.0");
   expect(workerSource).toContain("'./storage.js'");
   expect(workerSource).toContain("'./vendor/dexie.min.js'");
 });

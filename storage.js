@@ -129,6 +129,19 @@
       await database.records.put(record);
       return record;
     },
+    async restoreRecords(records) {
+      await ready;
+      return database.transaction('rw', database.records, async () => {
+        const existingIds = new Set(await database.records.bulkGet(records.map((record) => record.id))
+          .then((items) => items.filter(Boolean).map((record) => record.id)));
+        await database.records.bulkPut(records);
+        return {
+          restored: records.length,
+          added: records.length - existingIds.size,
+          replaced: existingIds.size
+        };
+      });
+    },
     async deleteRecord(id) {
       await ready;
       return database.records.delete(id);

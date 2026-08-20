@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.2.0';
+const CACHE_NAME = 'plumbing-commissioning-v0.3.0';
 const APP_SHELL = [
   './',
   './index.html',
