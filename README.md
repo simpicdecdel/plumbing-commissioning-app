@@ -63,6 +63,39 @@ python -m http.server 4173 --bind 127.0.0.1
 
 Open `http://127.0.0.1:4173/`. Load it once online before testing offline mode.
 
+## Automated iPhone-style testing
+
+Windows cannot run Apple's iOS Simulator because it is supplied with Xcode on macOS. This repository uses Playwright WebKit with the `iPhone 13` device profile as the local substitute. It emulates the iPhone viewport, touch input, user agent and WebKit browser engine. It does not reproduce the full iOS operating system, real Mobile Safari, Add to Home Screen prompts, camera access or device-specific hardware behaviour.
+
+Install the test dependency and WebKit browser once:
+
+```text
+pnpm install
+pnpm exec playwright install webkit
+```
+
+Run the automated iPhone suite headlessly:
+
+```text
+pnpm test:iphone
+```
+
+Open a visible iPhone-sized WebKit window for exploratory testing:
+
+```text
+pnpm test:iphone:headed
+```
+
+For Playwright's interactive runner:
+
+```text
+pnpm test:iphone:ui
+```
+
+The suite checks the v0.2.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave restoration, search and unit fault validation. GitHub Actions runs the same suite for pull requests and changes to `main`.
+
+Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
+
 ## Architecture boundary
 
 ```text
