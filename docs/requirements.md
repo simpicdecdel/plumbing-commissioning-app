@@ -1,10 +1,10 @@
 # Plumbing Commissioning App Requirements
 
-Version: 0.3
+Baseline: Current repository state
 
 Last updated: 20 August 2026
 
-Status: Current MVP baseline
+Status: Authentication foundation with local-only commissioning records
 
 ## 1. Purpose
 
@@ -28,6 +28,8 @@ Statuses:
 - **Proposed**: requires a decision before implementation
 - **Deferred**: intentionally outside the current MVP
 - **Retired**: no longer required, retained for traceability
+
+Requirement status records the product decision. Where delivery is incomplete, an **Implementation state** or **Current gap** states what the repository does now. Accepted does not by itself mean delivered.
 
 Priorities use Must, Should, Could and Later.
 
@@ -139,6 +141,7 @@ Priorities use Must, Should, Could and Later.
   - The application asks for confirmation before deletion.
   - The record is removed only after confirmation.
   - The interface states that the action cannot be undone.
+- Current gap: The current operation permanently deletes only the local IndexedDB record and is available without authentication. Administrator-only soft deletion applies to the future synchronised record path.
 
 ### REQ-F-009: Export a backup
 
@@ -161,6 +164,7 @@ Priorities use Must, Should, Could and Later.
   - Records on the device that are absent from the backup are retained.
   - The application asks for confirmation and reports added and replaced record counts.
   - Invalid, unsupported or duplicate-ID backups do not change stored records.
+- Current gap: Backup restore currently changes only local IndexedDB records and is available without an authentication or administrator check.
 
 ### REQ-F-011: Install the application
 
@@ -207,6 +211,30 @@ Priorities use Must, Should, Could and Later.
 - Acceptance criteria:
   - Record, draft and migration operations are exposed through the storage service.
   - `app.js` contains no direct `localStorage` or IndexedDB calls.
+
+### REQ-F-016: Account authentication
+
+- Status: Accepted
+- Priority: Must before multi-user use
+- Requirement: An invited organisation member must be able to establish and end an authenticated Supabase session.
+- Acceptance criteria:
+  - A user can sign in with email and password.
+  - A user can request a password setup email.
+  - A password recovery link opens the set-password flow.
+  - A user can sign out.
+  - The browser persists and refreshes the session using the Supabase client.
+- Implementation state: The client and UI are implemented. A live administrator sign-in was verified manually on 20 August 2026. Browser tests use a mocked remote client, so live authentication is not yet covered by the automated repository suite.
+
+### REQ-F-017: Show organisation membership
+
+- Status: Accepted
+- Priority: Must before multi-user use
+- Requirement: A signed-in user must be shown their organisation membership and role, or be told that no membership was found.
+- Acceptance criteria:
+  - Membership is looked up for the authenticated user.
+  - The account view shows the organisation name and `technician` or `administrator` role when present.
+  - A signed-in user without a membership sees a clear message.
+- Implementation state: Implemented in the authentication client and account UI. This display does not yet govern local record operations.
 
 ## 5. Record data requirements
 
@@ -342,6 +370,7 @@ Priorities use Must, Should, Could and Later.
   - Both roles can view, create and edit active records for their organisation.
   - Only Administrators can delete, restore or administer access.
   - Anonymous and cross-organisation access is denied by database row-level security.
+- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. The full role and cross-organisation permission matrix remains to be integration-tested. Local record access, delete and backup restore are not gated by authentication or role.
 
 ### REQ-SEC-003: Central storage and synchronisation
 
@@ -355,6 +384,7 @@ Priorities use Must, Should, Could and Later.
   - A stale revision is reported as a conflict and does not overwrite the current server record.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
+- Implementation state: The database tables and revision-checked functions are defined in the initial migration. Client-side remote record operations, offline queues, conflict handling and local-record migration are not implemented.
 
 ### REQ-SEC-004: Public repository hygiene
 
@@ -404,6 +434,7 @@ The following capabilities are outside the current MVP until separately accepted
 6. How long must records be retained?
 7. Should several plant records share a reusable site or job record?
 8. Which regulatory sources must the application enforce or reference?
+9. What verified release threshold must be met before sign-in gates local records and remote record storage is enabled?
 
 ## 10. Change process
 

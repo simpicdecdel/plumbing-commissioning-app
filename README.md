@@ -24,6 +24,9 @@ The current PWA can:
 - Search records and unit identifiers stored on the device.
 - Print a record, export all records as a versioned JSON backup and restore a valid backup.
 - Install as a PWA and reload its application shell without a network connection after the first successful load.
+- Sign invited Supabase users in and out, request a password setup email, complete password recovery and show their organisation role.
+
+The authentication client is active, but commissioning records are not yet read from or written to Supabase. Local records, delete and backup restore remain available without signing in. Treat this as an authentication foundation, not as access control for the local record store.
 
 ## Confirmed behaviour
 
@@ -53,15 +56,31 @@ On the first run after this update, the storage layer looks for the previous `lo
 
 Clearing site data, losing the device or uninstalling the browser can still remove records. Export backups regularly. Do not use this MVP as the only permanent business record until central storage, access control and restore have been implemented and tested.
 
-## Run locally
+## Install and run locally
 
 Serve the folder over HTTP. Service workers do not run when `index.html` is opened directly from the filesystem.
 
 ```text
-python -m http.server 4173 --bind 127.0.0.1
+pnpm install
+pnpm start
 ```
 
 Open `http://127.0.0.1:4173/`. Load it once online before testing offline mode.
+
+To serve the app without the remote authentication client during local testing in PowerShell:
+
+```powershell
+$env:PLUMBING_REMOTE_DISABLED = '1'
+pnpm start
+```
+
+The committed `vendor/remote-client.min.js` bundle is generated from `scripts/remote-client-entry.js`. Rebuild it after changing the Supabase client source or dependency:
+
+```text
+pnpm build:remote
+```
+
+`config.js` contains the production Supabase project URL and browser-safe publishable key. Copy `config.example.js` and replace those public values for another deployment. Never commit a secret key, legacy `service_role` key, database password or access token.
 
 ## Automated iPhone-style testing
 
@@ -80,6 +99,12 @@ Run the automated iPhone suite headlessly:
 pnpm test:iphone
 ```
 
+Run the complete schema and browser suite:
+
+```text
+pnpm test
+```
+
 Open a visible iPhone-sized WebKit window for exploratory testing:
 
 ```text
@@ -92,11 +117,11 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The suite checks the v0.3.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search and unit fault validation. GitHub Actions runs the same suite for pull requests and changes to `main`.
+The browser suite checks the v0.3.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation and the authentication UI. Authentication browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 
-## Architecture boundary
+## Current architecture boundaries
 
 ```text
 UI in app.js
@@ -105,12 +130,20 @@ UI in app.js
           -> IndexedDB
 ```
 
-The v0.3.0 application still has no active cloud sync or authentication. The accepted managed Supabase design, initial database migration and public configuration boundary are documented in `docs/supabase-setup.md`. They do not become a usable security control until deployed and integration-tested.
+Authentication is a separate path:
+
+```text
+Account UI in app.js
+  -> commissioningRemote in vendor/remote-client.min.js
+      -> Supabase Authentication and organisation membership lookup
+```
+
+The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The full technician, administrator and cross-organisation permission matrix has not been integration-tested. Authentication does not yet gate local record operations, and commissioning record synchronisation is not implemented.
 
 The planned synchronisation boundary is:
 
 ```text
-UI in app.js
+UI and future sync orchestration
   -> local-first synchronisation service
       -> commissioningStore in storage.js -> Dexie -> IndexedDB
       -> authenticated Supabase functions -> PostgreSQL with row-level security

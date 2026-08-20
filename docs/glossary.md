@@ -1,5 +1,9 @@
 # Glossary
 
+## Administrator
+
+An authenticated organisation member with the `administrator` role. The database design reserves delete and restore operations for this role. The current local record UI does not yet enforce that restriction.
+
 ## Acceptance criteria
 
 Observable conditions that must be met before a requirement or change is considered delivered.
@@ -14,7 +18,7 @@ A legacy term from the first MVP. The current product distinguishes a plant from
 
 ## Commissioning
 
-The checks, measurements, testing and handover performed to establish and record that an installed appliance operates as required.
+The checks, measurements, testing and handover performed to establish and record that installed plant and its units operate as required.
 
 ## Completed record
 
@@ -31,6 +35,10 @@ Minimum viable product. The smallest version used to test the workflow and requi
 ## Offline-first
 
 Designed so core functions remain available without a network connection after the application has first loaded successfully.
+
+## Organisation
+
+The business boundary used by the Supabase design. Membership determines which centrally stored commissioning records an authenticated user may access.
 
 ## Plant
 
@@ -59,3 +67,11 @@ The person accountable for clarifying and approving a requirement. Ownership doe
 ## Source of truth
 
 The authoritative location containing the current accepted requirements. For this product, it is `docs/requirements.md`.
+
+## Synchronisation
+
+The planned process that will reconcile local IndexedDB records with Supabase. Authentication is implemented, but record synchronisation is not.
+
+## Row-level security
+
+Database policies that restrict which rows an authenticated Supabase user can read. The initial migration is deployed, and its production RLS enablement, policy presence and grants were verified manually on 20 August 2026. Full live role and cross-organisation behaviour remains to be integration-tested.
