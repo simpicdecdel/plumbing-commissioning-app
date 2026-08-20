@@ -1,52 +1,77 @@
-# Plumbing Commissioning App
+# Plumbing Commissioning PWA
 
-An offline-first, installable web app for a small Australian plumbing business to record appliance commissioning in the field.
+An offline-first, installable web app for recording commercial plumbing plant commissioning in the field.
 
-## Product documentation
+## Current workflow
 
-- [Current requirements](docs/requirements.md)
-- [Product decision log](docs/decisions.md)
-- [Requirements collaboration workflow](docs/collaboration-workflow.md)
-- [Glossary](docs/glossary.md)
+One commissioning record represents this hierarchy:
 
-Use the repository's **Requirement proposal** issue form to suggest additions or changes. Accepted requirements are added to `docs/requirements.md` with a stable identifier and testable acceptance criteria.
+```text
+Site / job
+  -> Plant
+      -> Multiple units
+          -> Unit-level fault or exception
+      -> One plant commissioning result
+```
 
-## MVP capabilities
+The current PWA can:
 
-- Create, edit and complete commissioning records.
-- Capture job, appliance, installation, test result and handover details.
-- Autosave unfinished work locally.
-- Search saved records on the device.
-- Work after the first successful load without a network connection.
-- Print a record and export all records as a JSON backup.
-- Install as a Progressive Web App where the browser supports installation.
+- Create, edit, save as draft and complete a plant commissioning record.
+- Add and remove multiple units within a plant.
+- Record an operational result, fault / exception, or not-commissioned state for each unit.
+- Capture plant-level installation checks, readings, outcome, notes and handover details.
+- Autosave unfinished work and retain records offline in IndexedDB using Dexie.
+- Search records and unit identifiers stored on the device.
+- Print a record and export all records as a versioned JSON backup.
+- Install as a PWA and reload its application shell without a network connection after the first successful load.
 
-## MVP assumptions
+## Confirmed behaviour
 
-The source conversation did not include a confirmed field-by-field form, so this version uses these explicit defaults:
+- A site may contain multiple plants.
+- A commissioning record relates to one plant, not one appliance.
+- A plant can contain multiple units.
+- Individual unit failures and exceptions must be identifiable within the plant record.
+- Field use must continue without reliable connectivity.
+- Information should be captured once and reused within the record.
 
-- One record covers one appliance at one site.
-- The checklist is generic across common water-connected appliances.
-- Pressure, flow and outlet temperature fields are optional because they do not apply to every appliance.
-- A technician can complete a record after filling the customer, address, date, technician, appliance type and outcome fields.
-- Records live only in the browser's local storage. There is no login, cloud sync, central database, photo capture, digital signature or PDF generator yet.
-- The JSON export is a backup only. Restore/import is deferred until the record schema is confirmed.
-- Regulatory compliance remains the technician's responsibility. The generic checklist does not replace manufacturer instructions, licences, applicable Australian Standards or local requirements.
+## Current assumptions to validate in field testing
 
-These choices keep the first version usable without creating false compliance claims. The next product decision should confirm the required appliance types and the exact mandatory readings/checks for each.
+- A plant name or reference and at least one unit label are enough to identify the plant structure for completion.
+- Unit results are `Operational`, `Fault / exception`, or `Not commissioned`.
+- Fault / exception detail is mandatory only when that unit result is selected.
+- The existing generic installation checks, optional measurements, plant outcome and handover fields remain useful.
+- A completed record can still be edited. Record locking and audit history are deferred.
+- JSON export remains backup-only. Restore/import remains deferred.
+
+These assumptions keep the workflow testable. They do not establish regulatory or manufacturer compliance.
+
+## Local data and migration
+
+Records and the current autosaved draft are held in IndexedDB in the browser profile on the device. `storage.js` is the data-access boundary used by the UI. UI code does not read or write browser storage directly.
+
+On the first run after this update, the storage layer looks for the previous `localStorage` record and draft keys. Each earlier one-appliance record is converted into a one-plant record containing one unit. The old values are removed only after the IndexedDB transaction succeeds. A migrated failure is retained as a unit fault / exception, with the earlier notes copied into its exception detail.
+
+Clearing site data, losing the device or uninstalling the browser can still remove records. Export backups regularly. Do not use this MVP as the only permanent business record until central storage, access control and restore have been implemented and tested.
 
 ## Run locally
 
-Serve the folder over HTTP. Service workers do not run reliably when `index.html` is opened directly from the filesystem.
-
-For example:
+Serve the folder over HTTP. Service workers do not run when `index.html` is opened directly from the filesystem.
 
 ```text
-npx serve .
+python -m http.server 4173 --bind 127.0.0.1
 ```
 
-Then open the local address shown in the terminal. Load it once online before testing offline mode.
+Open `http://127.0.0.1:4173/`. Load it once online before testing offline mode.
 
-## Data and privacy
+## Architecture boundary
 
-Records are saved in browser local storage on the device in use. Clearing site data or uninstalling the browser can remove them. Export backups regularly. Do not rely on this MVP as the sole permanent business record until central storage and restore have been implemented and tested.
+```text
+UI in app.js
+  -> commissioningStore in storage.js
+      -> Dexie
+          -> IndexedDB
+```
+
+There is no Supabase, cloud sync, authentication, photo capture, signature capture or server-side PDF generation in this version.
+
+Dexie 4.4.4 is pinned and bundled in `vendor/dexie.min.js` so database access does not depend on a network request in the field. Its Apache 2.0 licence is retained in `vendor/DEXIE-LICENSE`.

@@ -50,7 +50,7 @@ button { cursor: pointer; }
 .tab { border: 0; border-bottom: 3px solid transparent; padding: .75rem 1rem; background: transparent; color: var(--muted); font-weight: 750; }
 .tab.is-active { border-color: var(--accent); color: var(--brand); }
 .view { padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
-.section-heading, .toolbar, .form-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.section-heading, .toolbar, .form-actions, .fieldset-heading, .unit-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .section-heading { margin-bottom: 1.25rem; }
 .section-heading h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); }
 .section-heading .eyebrow { color: var(--brand); }
@@ -63,6 +63,7 @@ button { cursor: pointer; }
 .button-secondary { border-color: var(--line); background: white; color: var(--brand); }
 .app-header .button-secondary { border-color: white; }
 .button-danger { border-color: #efd1d1; background: #fff7f7; color: var(--danger); }
+.button-small { min-height: 36px; padding: .35rem .65rem; font-size: .82rem; }
 
 input, select, textarea {
   width: 100%;
@@ -77,6 +78,7 @@ textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px solid rgb(11 93 103 / 20%); outline-offset: 2px; border-color: var(--brand); }
 
 .notice { margin: 1rem 0; padding-left: .8rem; border-left: 3px solid var(--accent); color: var(--muted); font-size: .9rem; }
+.notice-error, .save-status.error { color: var(--danger); }
 .record-list { display: grid; gap: .75rem; }
 .record-card { display: grid; grid-template-columns: 1fr auto; gap: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
 .record-card h3 { margin: 0 0 .15rem; font-size: 1.05rem; }
@@ -97,6 +99,13 @@ legend { padding: 0 .4rem; color: var(--brand); font-size: 1.05rem; font-weight:
 .span-2 { grid-column: span 2; }
 label { color: #334447; font-size: .9rem; font-weight: 700; }
 .field-help { margin: -.25rem 0 1rem; color: var(--muted); font-size: .86rem; }
+.fieldset-heading { align-items: flex-start; margin-bottom: .75rem; }
+.fieldset-heading .field-help { margin: 0; }
+.units-list { display: grid; gap: .75rem; }
+.unit-card { padding: 1rem; border: 1px solid var(--line); border-radius: 10px; background: #f8faf9; }
+.unit-heading { margin-bottom: .75rem; }
+.unit-heading h3 { margin: 0; font-size: 1rem; color: var(--brand); }
+.is-required::after { content: 'Required for a fault / exception'; display: block; margin-top: .25rem; color: var(--danger); font-size: .78rem; font-weight: 600; }
 .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; margin-bottom: 1rem; }
 .check-grid label { display: flex; align-items: flex-start; gap: .55rem; padding: .6rem; border-radius: 8px; background: #f6f8f8; }
 .check-grid input { width: 1.15rem; height: 1.15rem; margin: .12rem 0 0; accent-color: var(--brand); flex: none; }
@@ -111,6 +120,7 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
   .shell { width: min(calc(100% - 1rem), 1120px); margin-top: .75rem; }
   .view { border-radius: 12px; }
   .section-heading, .toolbar, .form-actions { align-items: stretch; flex-direction: column; }
+  .fieldset-heading { align-items: stretch; }
   .section-heading .button, .toolbar .button { width: 100%; }
   .form-grid, .form-grid-3, .check-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: auto; }

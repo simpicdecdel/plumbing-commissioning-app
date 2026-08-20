@@ -1,8 +1,10 @@
-const CACHE_NAME = 'plumbing-commissioning-v1';
+const CACHE_NAME = 'plumbing-commissioning-v2';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
+  './vendor/dexie.min.js',
+  './storage.js',
   './app.js',
   './manifest.webmanifest',
   './icons/app-icon.svg',

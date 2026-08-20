@@ -44,6 +44,36 @@ This log records material product decisions and their reasons. Changing an accep
 - Reason: Requirements, code changes and tests need shared version history and traceability without maintaining competing documents.
 - Review trigger: The operational team cannot participate effectively through the GitHub web interface.
 
+## DEC-006: Plant-centric commissioning record
+
+- Date: 19 August 2026
+- Status: Accepted
+- Decision: Treat one commissioning record as one plant at one site or job. The record contains multiple units and unit-level faults or exceptions.
+- Reason: Commercial hot water systems may contain multiple units operating as one plant, while individual unit failures still need to be identifiable.
+- Risks and trade-offs: A site with several plants requires several records until a shared site or job layer is justified.
+- Review trigger: Field testing shows that plant boundaries or cross-plant commissioning cannot be represented clearly.
+- Replaces: DEC-003
+
+## DEC-007: IndexedDB through a storage abstraction
+
+- Date: 19 August 2026
+- Status: Accepted
+- Decision: Store records and autosaved drafts in IndexedDB through Dexie. UI code uses `commissioningStore` and does not call browser persistence APIs directly.
+- Reason: IndexedDB is better suited to structured offline records and future attachments or synchronisation. The boundary allows the persistence implementation to change without rewriting the screens.
+- Alternatives considered: Keep localStorage; add Supabase at the same time.
+- Risks and trade-offs: Data is still tied to one browser profile and device. Dexie becomes a pinned client dependency.
+- Review trigger: Central multi-user storage or synchronisation is accepted.
+- Replaces: DEC-002
+
+## DEC-008: Preserve earlier local records during upgrade
+
+- Date: 19 August 2026
+- Status: Accepted
+- Decision: On first run, convert each earlier one-appliance localStorage record into one plant containing one unit, then remove the old values only after the IndexedDB transaction succeeds.
+- Reason: Existing field-test data should not be discarded when the record structure changes.
+- Risks and trade-offs: The migration cannot infer a real plant boundary from an earlier single-appliance record, so migrated plant names may need manual correction.
+- Review trigger: Migration testing identifies earlier record shapes that cannot be converted safely.
+
 ## Decision entry template
 
 ```text
