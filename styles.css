@@ -42,6 +42,7 @@ button { cursor: pointer; }
 .eyebrow { margin: 0 0 .25rem; font-size: .72rem; font-weight: 800; letter-spacing: .14em; }
 .app-header .eyebrow { color: #b9dadd; }
 .header-actions { display: flex; align-items: center; gap: .65rem; }
+.app-version { color: #d6e8ea; font-size: .75rem; white-space: nowrap; }
 .status-pill { border: 1px solid rgb(255 255 255 / 35%); border-radius: 999px; padding: .35rem .65rem; font-size: .8rem; white-space: nowrap; }
 .status-pill.offline { background: #7c352f; }
 
