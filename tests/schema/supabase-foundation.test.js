@@ -5,6 +5,8 @@ import { validateRemoteConfig } from '../../remote-config.js';
 
 const migrationUrl = new URL('../../supabase/migrations/20260820000000_initial_multi_user_schema.sql', import.meta.url);
 const migration = await readFile(migrationUrl, 'utf8');
+const productionConfigUrl = new URL('../../config.js', import.meta.url);
+const productionConfig = await readFile(productionConfigUrl, 'utf8');
 
 test('all exposed tables enable row-level security', () => {
   for (const table of ['organisations', 'organisation_members', 'commissioning_records']) {
@@ -63,4 +65,10 @@ test('only an HTTPS Supabase URL and publishable key enable remote access', () =
     supabaseUrl: 'https://example-project.supabase.co',
     supabasePublishableKey: 'sb_secret_do_not_use'
   }), /publishable key/);
+});
+
+test('production browser configuration contains public values only', () => {
+  assert.match(productionConfig, /https:\/\/[a-z0-9-]+\.supabase\.co/i);
+  assert.match(productionConfig, /sb_publishable_[A-Za-z0-9_-]+/);
+  assert.doesNotMatch(productionConfig, /sb_secret_|service_role|database[_ -]?password|access[_ -]?token/i);
 });
