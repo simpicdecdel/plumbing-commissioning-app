@@ -74,6 +74,17 @@ This log records material product decisions and their reasons. Changing an accep
 - Risks and trade-offs: The migration cannot infer a real plant boundary from an earlier single-appliance record, so migrated plant names may need manual correction.
 - Review trigger: Migration testing identifies earlier record shapes that cannot be converted safely.
 
+## DEC-009: Managed Supabase multi-user service
+
+- Date: 20 August 2026
+- Status: Accepted
+- Decision: Use a managed Supabase project in Sydney for invite-only email authentication, central commissioning records and database-enforced organisation roles. Retain IndexedDB as the offline working store. Use revision-checked writes and explicit conflict resolution rather than last-write-wins updates.
+- Reason: Multiple technicians and office users need shared records without making one business-managed server the production availability and security boundary.
+- Alternatives considered: Continue with device-only records; self-host the central services on OfficeDev; use Firebase.
+- Risks and trade-offs: The service creates an external operating cost and vendor dependency. Offline synchronisation, conflict handling and local-record migration still require application code and live integration tests.
+- Review trigger: Cost, data residency, availability or integration constraints become unacceptable, or the business gains the capacity to operate and secure the full service itself.
+- Replaces: The remaining local-only aspect of DEC-007. The IndexedDB storage boundary remains accepted.
+
 ## Decision entry template
 
 ```text

@@ -6,7 +6,8 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "test": "playwright test",
+    "test": "pnpm test:schema && playwright test",
+    "test:schema": "node --test tests/schema/*.test.js",
     "test:iphone": "playwright test --project=iphone-webkit",
     "test:iphone:headed": "playwright test --project=iphone-webkit --headed",
     "test:iphone:ui": "playwright test --project=iphone-webkit --ui"
