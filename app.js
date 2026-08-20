@@ -6,6 +6,7 @@ const formView = document.querySelector('#formView');
 const saveStatus = document.querySelector('#saveStatus');
 const searchInput = document.querySelector('#recordSearch');
 const unitsList = document.querySelector('#unitsList');
+const restoreFile = document.querySelector('#restoreFile');
 let installPrompt;
 let autosaveTimer;
 
@@ -224,6 +225,50 @@ document.querySelector('#exportButton').addEventListener('click', async () => {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
   link.download = `plumbing-commissioning-backup-${today()}.json`; link.click(); URL.revokeObjectURL(link.href);
+});
+
+function validateBackup(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('The selected file is not a backup.');
+  if (payload.schemaVersion !== 2) throw new Error('This backup version is not supported.');
+  if (!Array.isArray(payload.records)) throw new Error('The backup does not contain a records list.');
+
+  const ids = new Set();
+  for (const record of payload.records) {
+    const validRecord = record && typeof record === 'object' && !Array.isArray(record)
+      && record.schemaVersion === 2 && typeof record.id === 'string' && record.id.trim()
+      && record.job && typeof record.job === 'object'
+      && record.plant && typeof record.plant === 'object'
+      && Array.isArray(record.units) && record.results && typeof record.results === 'object'
+      && typeof record.updatedAt === 'string';
+    if (!validRecord) throw new Error('The backup contains an invalid record.');
+    if (ids.has(record.id)) throw new Error('The backup contains duplicate record IDs.');
+    ids.add(record.id);
+  }
+  return payload.records;
+}
+
+document.querySelector('#restoreButton').addEventListener('click', () => restoreFile.click());
+restoreFile.addEventListener('change', async () => {
+  const file = restoreFile.files?.[0];
+  restoreFile.value = '';
+  if (!file) return;
+  const storageNotice = document.querySelector('#storageNotice');
+  storageNotice.classList.remove('notice-error');
+  try {
+    const records = validateBackup(JSON.parse(await file.text()));
+    if (!records.length) {
+      storageNotice.textContent = 'The backup is valid but contains no records.';
+      return;
+    }
+    if (!confirm(`Restore ${records.length} record${records.length === 1 ? '' : 's'}? Existing records with the same IDs will be replaced.`)) return;
+    const result = await store.restoreRecords(records);
+    storageNotice.textContent = `Backup restored: ${result.added} added, ${result.replaced} replaced.`;
+    await renderRecords();
+  } catch (error) {
+    console.error(error);
+    storageNotice.textContent = `Backup not restored: ${error instanceof SyntaxError ? 'The file is not valid JSON.' : error.message}`;
+    storageNotice.classList.add('notice-error');
+  }
 });
 
 window.addEventListener('online', updateNetworkStatus);

@@ -22,7 +22,7 @@ The current PWA can:
 - Capture plant-level installation checks, readings, outcome, notes and handover details.
 - Autosave unfinished work and retain records offline in IndexedDB using Dexie.
 - Search records and unit identifiers stored on the device.
-- Print a record and export all records as a versioned JSON backup.
+- Print a record, export all records as a versioned JSON backup and restore a valid backup.
 - Install as a PWA and reload its application shell without a network connection after the first successful load.
 
 ## Confirmed behaviour
@@ -41,7 +41,7 @@ The current PWA can:
 - Fault / exception detail is mandatory only when that unit result is selected.
 - The existing generic installation checks, optional measurements, plant outcome and handover fields remain useful.
 - A completed record can still be edited. Record locking and audit history are deferred.
-- JSON export remains backup-only. Restore/import remains deferred.
+- Backup restore validates the full file, then merges records by ID in one IndexedDB transaction.
 
 These assumptions keep the workflow testable. They do not establish regulatory or manufacturer compliance.
 
@@ -92,7 +92,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The suite checks the v0.2.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave restoration, search and unit fault validation. GitHub Actions runs the same suite for pull requests and changes to `main`.
+The suite checks the v0.3.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search and unit fault validation. GitHub Actions runs the same suite for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 
