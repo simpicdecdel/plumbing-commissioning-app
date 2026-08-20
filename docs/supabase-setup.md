@@ -1,6 +1,29 @@
 # Supabase multi-user foundation
 
-This document covers the database foundation for the accepted multi-user design. The v0.3.0 PWA remains local-only until authentication, synchronisation and migration have been connected and verified.
+This document covers the authentication and database foundation for the accepted multi-user design. The browser authentication client is connected and the production public configuration is present. Commissioning record storage remains local-only until synchronisation and local-record migration are implemented and verified.
+
+## Current implementation boundary
+
+Implemented in this repository:
+
+- Supabase email/password sign-in and sign-out.
+- Password setup and recovery flow.
+- Persisted and refreshed browser sessions.
+- Organisation membership and role display.
+- The initial database migration and static security tests.
+- A production project URL and browser-safe publishable key in `config.js`.
+- Production tables, RLS enablement, policies, security-definer function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026.
+- A live administrator sign-in was verified manually on 20 August 2026.
+
+Not yet implemented or verified:
+
+- Remote commissioning record reads, writes, deletion or restoration.
+- Offline change queues, revision conflict handling and synchronisation.
+- Role enforcement for local delete or backup restore.
+- Migration of existing IndexedDB records to Supabase.
+- Automated live tests for the complete technician, administrator, revoked-user and cross-organisation permission matrix.
+
+Signing in therefore does not yet restrict access to records held in the browser on that device.
 
 ## Production shape
 
@@ -49,6 +72,14 @@ commit;
 Replace both placeholders before running the transaction. Use a generated UUID for the organisation in production.
 
 6. `config.js` contains the production project URL and browser-safe publishable key. For another deployment, replace only those two public values. Never use a secret or legacy `service_role` key.
+7. Install dependencies and rebuild the committed browser client after changing `scripts/remote-client-entry.js` or the Supabase dependency:
+
+```text
+pnpm install
+pnpm build:remote
+```
+
+8. Serve the app with `pnpm start` and verify sign-in, password recovery, sign-out and organisation membership display.
 
 ## What the migration enforces
 
@@ -61,7 +92,7 @@ Replace both placeholders before running the transaction. Use a generated UUID f
 
 ## Verification required before live use
 
-Static repository tests check that the migration contains the intended controls. They do not prove the deployed database behaves correctly. Before enabling login in the PWA, run integration tests against a separate Supabase test project covering:
+Static repository tests check that the migration contains the intended controls. Authentication UI tests use a mocked remote client. Manual production verification covered the deployed structure, grants, anonymous read denial, administrator membership and administrator sign-in, but it did not prove the complete permission matrix. Before treating sign-in as record access control or enabling remote record storage, run integration tests against a separate Supabase test project covering:
 
 - Anonymous access denial.
 - Technician and administrator permissions.
@@ -70,5 +101,7 @@ Static repository tests check that the migration contains the intended controls.
 - Soft delete and restore.
 - Session expiry and revoked-user access.
 - Upload of existing local records without duplication.
+
+Run the current static schema checks with `pnpm test:schema` and the full local suite with `pnpm test`.
 
 Do not upload existing phone records until the live project has passed these tests and a fresh JSON backup has been exported.

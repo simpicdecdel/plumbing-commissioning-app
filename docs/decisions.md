@@ -13,7 +13,7 @@ This log records material product decisions and their reasons. Changing an accep
 ## DEC-002: Local browser storage for the MVP
 
 - Date: 17 August 2026
-- Status: Temporary
+- Status: Replaced
 - Decision: Store MVP records in browser local storage and provide JSON backup export.
 - Reason: This supports early offline testing without accounts or backend infrastructure.
 - Risk: Clearing browser data, changing devices or losing the device can remove records.
@@ -22,7 +22,7 @@ This log records material product decisions and their reasons. Changing an accep
 ## DEC-003: One appliance per record
 
 - Date: 17 August 2026
-- Status: Provisional
+- Status: Replaced
 - Decision: Treat one commissioning record as one appliance at one site.
 - Reason: This is the simplest record structure for the first build.
 - Review trigger: Confirm the business workflow for jobs containing several appliances.
@@ -84,6 +84,13 @@ This log records material product decisions and their reasons. Changing an accep
 - Risks and trade-offs: The service creates an external operating cost and vendor dependency. Offline synchronisation, conflict handling and local-record migration still require application code and live integration tests.
 - Review trigger: Cost, data residency, availability or integration constraints become unacceptable, or the business gains the capacity to operate and secure the full service itself.
 - Replaces: The remaining local-only aspect of DEC-007. The IndexedDB storage boundary remains accepted.
+
+### Implementation status at 20 August 2026
+
+- Implemented: authentication client, sign-in, password setup and recovery, sign-out, membership display, public production configuration, deployed initial database migration and static security tests.
+- Not implemented: remote commissioning record operations, local-to-remote migration, offline synchronisation, conflict resolution in the client, and role enforcement for local delete or restore.
+- Manually verified on 20 August 2026: production tables, RLS enablement, policies, security-definer function grants, anonymous read denial, administrator membership and live administrator sign-in.
+- Not verified: the complete technician, administrator, revoked-user and cross-organisation permission matrix through automated live integration tests.
 
 ## Decision entry template
 

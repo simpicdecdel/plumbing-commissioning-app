@@ -31,19 +31,16 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: appliance-type
+    id: plant-unit-type
     attributes:
-      label: Appliance type
+      label: Plant or unit type
       options:
-        - All or not appliance-specific
-        - Hot water system
-        - Tapware or mixer
-        - Toilet or cistern
-        - Dishwasher
-        - Washing machine
-        - Water filter
+        - All or not type-specific
+        - Commercial hot water plant
+        - Hot water unit
         - Pump
-        - Other
+        - Other plant type
+        - Other unit type
     validations:
       required: true
   - type: dropdown

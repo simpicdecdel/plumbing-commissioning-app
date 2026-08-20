@@ -42,7 +42,7 @@ Add these fields:
 - Owner
 - Target release
 - Requirement ID
-- Appliance type
+- Plant or unit type
 
 Recommended views:
 
