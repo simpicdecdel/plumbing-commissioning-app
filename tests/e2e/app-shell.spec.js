@@ -43,6 +43,7 @@ test('serves a valid installable shell', async ({ request }) => {
   expect(workerSource).toContain("plumbing-commissioning-v0.3.0");
   expect(workerSource).toContain("'./storage.js'");
   expect(workerSource).toContain("'./vendor/dexie.min.js'");
+  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.0-auth'");
 });
 
 test('registers a service worker that controls the application shell', async ({ page }) => {

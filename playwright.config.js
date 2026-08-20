@@ -23,6 +23,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'node scripts/serve.mjs',
+    env: { PLUMBING_REMOTE_DISABLED: '1' },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 15_000

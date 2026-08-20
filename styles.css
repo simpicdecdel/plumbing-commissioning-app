@@ -115,6 +115,16 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
 .form-actions > div { display: flex; gap: .5rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
+.auth-dialog { width: min(30rem, calc(100% - 2rem)); border: 0; border-radius: 14px; padding: 1.25rem; color: var(--ink); box-shadow: 0 24px 70px rgb(0 0 0 / 28%); }
+.auth-dialog::backdrop { background: rgb(8 28 31 / 62%); }
+.auth-dialog-header, .auth-actions { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
+.auth-dialog-header { margin-bottom: 1rem; }
+.auth-dialog-header h2 { margin: 0; color: var(--brand); }
+.auth-dialog .eyebrow { color: var(--brand); }
+.auth-message { min-height: 1.5rem; margin: 1rem 0 0; color: var(--muted); }
+.auth-message.error { color: var(--danger); }
+#accountPanel p { margin: .35rem 0; }
+
 @media (max-width: 720px) {
   .app-header { align-items: flex-start; }
   .header-actions { flex-direction: column; align-items: flex-end; }
@@ -128,6 +138,8 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
   .record-card { grid-template-columns: 1fr; }
   .record-actions { flex-wrap: wrap; }
   .form-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .auth-actions { align-items: stretch; flex-direction: column; }
+  .auth-actions .button { width: 100%; }
 }
 
 @media print {

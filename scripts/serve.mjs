@@ -38,6 +38,17 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (path.basename(requestedPath) === 'config.js' && process.env.PLUMBING_REMOTE_DISABLED === '1') {
+    const source = 'window.PLUMBING_APP_CONFIG = Object.freeze({});\n';
+    response.writeHead(200, {
+      'Cache-Control': 'no-cache',
+      'Content-Length': Buffer.byteLength(source),
+      'Content-Type': 'text/javascript; charset=utf-8'
+    });
+    response.end(source);
+    return;
+  }
+
   try {
     const fileStats = await stat(requestedPath);
     if (!fileStats.isFile()) throw new Error('Not a file');
