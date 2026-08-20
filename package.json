@@ -6,12 +6,18 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "test": "playwright test",
+    "build:remote": "node scripts/build-remote-client.mjs",
+    "test": "pnpm test:schema && playwright test",
+    "test:schema": "node --test tests/schema/*.test.js",
     "test:iphone": "playwright test --project=iphone-webkit",
     "test:iphone:headed": "playwright test --project=iphone-webkit --headed",
     "test:iphone:ui": "playwright test --project=iphone-webkit --ui"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.62.1"
+    "@playwright/test": "^1.62.1",
+    "esbuild": "^0.28.2"
   }
 }

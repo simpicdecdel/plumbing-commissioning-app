@@ -105,6 +105,17 @@ UI in app.js
           -> IndexedDB
 ```
 
-There is no Supabase, cloud sync, authentication, photo capture, signature capture or server-side PDF generation in this version.
+The v0.3.0 application still has no active cloud sync or authentication. The accepted managed Supabase design, initial database migration and public configuration boundary are documented in `docs/supabase-setup.md`. They do not become a usable security control until deployed and integration-tested.
+
+The planned synchronisation boundary is:
+
+```text
+UI in app.js
+  -> local-first synchronisation service
+      -> commissioningStore in storage.js -> Dexie -> IndexedDB
+      -> authenticated Supabase functions -> PostgreSQL with row-level security
+```
+
+Photo capture, signature capture and server-side PDF generation remain outside this version.
 
 Dexie 4.4.4 is pinned and bundled in `vendor/dexie.min.js` so database access does not depend on a network request in the field. Its Apache 2.0 licence is retained in `vendor/DEXIE-LICENSE`.

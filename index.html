@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=0.4.0-auth">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -19,6 +19,7 @@
     <div class="header-actions">
         <span class="app-version" aria-label="Application version 0.3.0">v0.3.0</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
+      <button id="accountButton" class="button button-secondary" type="button">Sign in</button>
       <button id="installButton" class="button button-secondary" type="button" hidden>Install app</button>
     </div>
   </header>
@@ -153,6 +154,36 @@
     </section>
   </main>
 
+  <dialog id="authDialog" class="auth-dialog" aria-labelledby="authTitle">
+    <div class="auth-dialog-header">
+      <div>
+        <p class="eyebrow">TEAM ACCESS</p>
+        <h2 id="authTitle">Sign in</h2>
+      </div>
+      <button id="closeAuthButton" class="button button-secondary button-small" type="button">Close</button>
+    </div>
+    <form id="signInForm">
+      <label>Email <input id="authEmail" name="email" type="email" autocomplete="username" required></label>
+      <label>Password <input id="authPassword" name="password" type="password" autocomplete="current-password" required></label>
+      <div class="auth-actions">
+        <button class="button button-primary" type="submit">Sign in</button>
+        <button id="passwordSetupButton" class="button button-secondary" type="button">Email password setup link</button>
+      </div>
+    </form>
+    <form id="setPasswordForm" hidden>
+      <p>Choose a password to finish setting up your account.</p>
+      <label>New password <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required></label>
+      <label>Confirm password <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label>
+      <button class="button button-primary" type="submit">Set password</button>
+    </form>
+    <section id="accountPanel" hidden>
+      <p id="accountEmail"></p>
+      <p id="accountRole"></p>
+      <button id="signOutButton" class="button button-secondary" type="button">Sign out</button>
+    </section>
+    <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+  </dialog>
+
   <template id="emptyStateTemplate">
     <div class="empty-state">
       <div class="empty-icon" aria-hidden="true">✓</div>
@@ -186,6 +217,8 @@
 
   <script src="vendor/dexie.min.js" defer></script>
   <script src="storage.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="config.js?v=0.4.0-auth" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.0-auth" defer></script>
+  <script src="app.js?v=0.4.0-auth" defer></script>
 </body>
 </html>

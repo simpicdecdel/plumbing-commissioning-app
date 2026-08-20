@@ -10,6 +10,39 @@ const restoreFile = document.querySelector('#restoreFile');
 let installPrompt;
 let autosaveTimer;
 
+const remote = window.commissioningRemote;
+const authDialog = document.querySelector('#authDialog');
+const authMessage = document.querySelector('#authMessage');
+const signInForm = document.querySelector('#signInForm');
+const setPasswordForm = document.querySelector('#setPasswordForm');
+const accountPanel = document.querySelector('#accountPanel');
+
+function showAuthMessage(message = '', isError = false) {
+  authMessage.textContent = message;
+  authMessage.classList.toggle('error', isError);
+}
+
+function renderAuthState(authState = {}) {
+  const signedIn = Boolean(authState.user);
+  const recovery = Boolean(authState.recovery);
+  document.querySelector('#accountButton').textContent = signedIn ? (authState.membership?.role === 'administrator' ? 'Administrator' : 'Account') : 'Sign in';
+  signInForm.hidden = signedIn || recovery;
+  setPasswordForm.hidden = !recovery;
+  accountPanel.hidden = !signedIn || recovery;
+  document.querySelector('#authTitle').textContent = recovery ? 'Set password' : signedIn ? 'Account' : 'Sign in';
+  document.querySelector('#accountEmail').textContent = authState.user?.email || '';
+  document.querySelector('#accountRole').textContent = authState.membership
+    ? `${authState.membership.organisationName || 'Organisation'} · ${authState.membership.role}`
+    : signedIn ? 'No organisation membership found.' : '';
+}
+
+async function initialiseAuth() {
+  if (!remote?.enabled) return;
+  remote.onStateChange(renderAuthState);
+  renderAuthState(await remote.initialise());
+  if (remote.isRecovery()) authDialog.showModal();
+}
+
 function today() { return new Date().toISOString().slice(0, 10); }
 
 function makeId(prefix = 'record') {
@@ -281,13 +314,62 @@ document.querySelector('#installButton').addEventListener('click', async () => {
   installPrompt = null; document.querySelector('#installButton').hidden = true;
 });
 
+document.querySelector('#accountButton').addEventListener('click', () => {
+  showAuthMessage(remote?.enabled ? '' : 'Team sign-in is not configured on this build.');
+  renderAuthState(remote?.getState?.());
+  authDialog.showModal();
+});
+document.querySelector('#closeAuthButton').addEventListener('click', () => authDialog.close());
+authDialog.addEventListener('click', (event) => { if (event.target === authDialog) authDialog.close(); });
+
+signInForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  showAuthMessage('Signing in…');
+  try {
+    await remote.signIn(document.querySelector('#authEmail').value.trim(), document.querySelector('#authPassword').value);
+    signInForm.reset();
+    showAuthMessage('Signed in.');
+  } catch (error) { showAuthMessage(error.message, true); }
+});
+
+document.querySelector('#passwordSetupButton').addEventListener('click', async () => {
+  const email = document.querySelector('#authEmail').value.trim();
+  if (!email || !document.querySelector('#authEmail').reportValidity()) return;
+  showAuthMessage('Requesting a password setup email…');
+  try {
+    await remote.sendPasswordSetupEmail(email);
+    showAuthMessage('Password setup email sent. Open it on this device to continue.');
+  } catch (error) { showAuthMessage(error.message, true); }
+});
+
+setPasswordForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const password = document.querySelector('#newPassword').value;
+  if (password !== document.querySelector('#confirmPassword').value) {
+    showAuthMessage('The passwords do not match.', true);
+    return;
+  }
+  showAuthMessage('Setting password…');
+  try {
+    await remote.updatePassword(password);
+    setPasswordForm.reset();
+    showAuthMessage('Password set successfully.');
+  } catch (error) { showAuthMessage(error.message, true); }
+});
+
+document.querySelector('#signOutButton').addEventListener('click', async () => {
+  showAuthMessage('Signing out…');
+  try { await remote.signOut(); showAuthMessage('Signed out.'); }
+  catch (error) { showAuthMessage(error.message, true); }
+});
+
 async function start() {
   try {
     const migration = await store.initialise();
     if (migration?.migratedRecordCount || migration?.migratedDraft) {
       document.querySelector('#storageNotice').textContent = `${migration.migratedRecordCount} earlier record${migration.migratedRecordCount === 1 ? '' : 's'} moved to IndexedDB on this device.`;
     }
-    updateNetworkStatus(); await renderRecords();
+    updateNetworkStatus(); await renderRecords(); await initialiseAuth();
     if ('serviceWorker' in navigator) await navigator.serviceWorker.register('./service-worker.js');
   } catch (error) {
     reportStorageError(error);

@@ -1,8 +1,8 @@
 # Plumbing Commissioning App Requirements
 
-Version: 0.2
+Version: 0.3
 
-Last updated: 19 August 2026
+Last updated: 20 August 2026
 
 Status: Current MVP baseline
 
@@ -333,17 +333,28 @@ Priorities use Must, Should, Could and Later.
 
 ### REQ-SEC-002: Access control
 
-- Status: Proposed
+- Status: Accepted
 - Priority: Must before handling live customer records at scale
-- Requirement: Only authorised users should be able to access business and customer commissioning records.
-- Decision needed: Define user roles, authentication method and device requirements.
+- Requirement: Only invited, authenticated members of the business organisation may access commissioning records.
+- Acceptance criteria:
+  - Authentication uses invite-only email accounts through managed Supabase Authentication.
+  - Supported roles are Technician and Administrator.
+  - Both roles can view, create and edit active records for their organisation.
+  - Only Administrators can delete, restore or administer access.
+  - Anonymous and cross-organisation access is denied by database row-level security.
 
 ### REQ-SEC-003: Central storage and synchronisation
 
-- Status: Proposed
+- Status: Accepted
 - Priority: Must before multi-user use
-- Requirement: Records should be stored centrally and synchronised between authorised technicians and office staff.
-- Decision needed: Define offline conflict handling, ownership and retention.
+- Requirement: Records must synchronise between the local IndexedDB store and a managed Supabase database while retaining offline field operation.
+- Acceptance criteria:
+  - Every server record belongs to one organisation and retains its creating and last-updating user identifiers.
+  - Offline changes are queued on the device and sent after connectivity and authentication return.
+  - Every write supplies the server revision last seen by that device.
+  - A stale revision is reported as a conflict and does not overwrite the current server record.
+  - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
+  - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
 
 ### REQ-SEC-004: Public repository hygiene
 
@@ -377,7 +388,6 @@ The following capabilities are outside the current MVP until separately accepted
 - Photographs and file attachments
 - Generated PDF commissioning certificates
 - Emailing or sharing records
-- Multiple users and user administration
 - Record locking and audit history
 - Business branding and configurable company details
 - A shared site or job record that groups several plant records
@@ -391,11 +401,9 @@ The following capabilities are outside the current MVP until separately accepted
 3. What values or ranges constitute a pass, warning or failure?
 4. Are photographs, customer signatures or technician signatures required?
 5. What final document must be provided to the customer?
-6. Must records synchronise between technicians and the office?
-7. How long must records be retained?
-8. Who may create, edit, complete, reopen or delete records?
-9. Should several plant records share a reusable site or job record?
-10. Which regulatory sources must the application enforce or reference?
+6. How long must records be retained?
+7. Should several plant records share a reusable site or job record?
+8. Which regulatory sources must the application enforce or reference?
 
 ## 10. Change process
 
