@@ -48,7 +48,7 @@ commit;
 
 Replace both placeholders before running the transaction. Use a generated UUID for the organisation in production.
 
-6. Copy `config.example.js` to `config.js`, then replace the example URL and publishable key. Do not add `config.js` to a release until the client integration is ready.
+6. `config.js` contains the production project URL and browser-safe publishable key. For another deployment, replace only those two public values. Never use a secret or legacy `service_role` key.
 
 ## What the migration enforces
 
