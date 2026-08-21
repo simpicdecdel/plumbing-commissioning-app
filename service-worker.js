@@ -1,13 +1,13 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.3.0';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.0-sync4';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.0-auth',
-  './config.js?v=0.4.0-auth',
-  './vendor/dexie.min.js',
-  './vendor/remote-client.min.js?v=0.4.0-auth',
-  './storage.js',
-  './app.js?v=0.4.0-auth',
+  './styles.css?v=0.4.0-sync4',
+  './vendor/dexie.min.js?v=0.4.0-sync4',
+  './vendor/remote-client.min.js?v=0.4.0-sync4',
+  './storage.js?v=0.4.0-sync4',
+  './sync.js?v=0.4.0-sync4',
+  './app.js?v=0.4.0-sync4',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',
@@ -26,6 +26,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (new URL(event.request.url).pathname.endsWith('/config.js')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)
     .then((response) => {
       const copy = response.clone();

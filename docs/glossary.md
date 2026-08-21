@@ -2,7 +2,7 @@
 
 ## Administrator
 
-An authenticated organisation member with the `administrator` role. The database design reserves delete and restore operations for this role. The current local record UI does not yet enforce that restriction.
+An authenticated organisation member with the `administrator` role. The synchronisation path reserves server deletion for this role. A record that has never been synchronised can still be deleted locally without signing in.
 
 ## Acceptance criteria
 
@@ -70,7 +70,7 @@ The authoritative location containing the current accepted requirements. For thi
 
 ## Synchronisation
 
-The planned process that will reconcile local IndexedDB records with Supabase. Authentication is implemented, but record synchronisation is not.
+The process that reconciles local IndexedDB records with Supabase. Signed-in changes are queued locally, uploaded when connectivity is available and downloaded to other signed-in devices. Stale edits are retained and reported as conflicts, but the conflict-resolution screen is not yet implemented.
 
 ## Row-level security
 

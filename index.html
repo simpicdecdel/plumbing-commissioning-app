@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.0-auth">
+  <link rel="stylesheet" href="styles.css?v=0.4.0-sync4">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,8 +17,10 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.3.0">v0.3.0</span>
+        <span class="app-version" aria-label="Application version 0.4.0">v0.4.0</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
+      <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
+      <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
       <button id="accountButton" class="button button-secondary" type="button">Sign in</button>
       <button id="installButton" class="button button-secondary" type="button" hidden>Install app</button>
     </div>
@@ -47,7 +49,7 @@
         <button id="restoreButton" class="button button-secondary" type="button">Restore backup</button>
         <input id="restoreFile" class="sr-only" type="file" accept="application/json,.json">
       </div>
-      <p id="storageNotice" class="notice">Records stay in IndexedDB on this device unless you export a backup.</p>
+      <p id="storageNotice" class="notice">Records stay in IndexedDB on this device unless you sign in and save or edit them.</p>
       <div id="recordList" class="record-list"></div>
     </section>
 
@@ -215,10 +217,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js" defer></script>
-  <script src="storage.js" defer></script>
-  <script src="config.js?v=0.4.0-auth" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.0-auth" defer></script>
-  <script src="app.js?v=0.4.0-auth" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.0-sync4" defer></script>
+  <script src="storage.js?v=0.4.0-sync4" defer></script>
+  <script src="config.js?v=0.4.0-sync4" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.0-sync4" defer></script>
+  <script src="sync.js?v=0.4.0-sync4" defer></script>
+  <script src="app.js?v=0.4.0-sync4" defer></script>
 </body>
 </html>

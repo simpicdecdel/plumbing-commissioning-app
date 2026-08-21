@@ -7,10 +7,12 @@ const saveStatus = document.querySelector('#saveStatus');
 const searchInput = document.querySelector('#recordSearch');
 const unitsList = document.querySelector('#unitsList');
 const restoreFile = document.querySelector('#restoreFile');
+const storageNotice = document.querySelector('#storageNotice');
 let installPrompt;
 let autosaveTimer;
 
 const remote = window.commissioningRemote;
+const sync = window.commissioningSync;
 const authDialog = document.querySelector('#authDialog');
 const authMessage = document.querySelector('#authMessage');
 const signInForm = document.querySelector('#signInForm');
@@ -34,10 +36,18 @@ function renderAuthState(authState = {}) {
   document.querySelector('#accountRole').textContent = authState.membership
     ? `${authState.membership.organisationName || 'Organisation'} · ${authState.membership.role}`
     : signedIn ? 'No organisation membership found.' : '';
+  document.querySelector('#syncButton').hidden = !signedIn || !authState.membership;
+  storageNotice.textContent = signedIn && authState.membership
+    ? 'New or edited records sync to your organisation. Existing device records remain local until you edit them.'
+    : 'Records stay in IndexedDB on this device unless you sign in and save or edit them.';
+  sync?.setAuthState(authState).catch((error) => console.error('Could not initialise synchronisation.', error));
 }
 
 async function initialiseAuth() {
-  if (!remote?.enabled) return;
+  if (!remote?.enabled) {
+    await sync?.setAuthState({});
+    return;
+  }
   remote.onStateChange(renderAuthState);
   renderAuthState(await remote.initialise());
   if (remote.isRecovery()) authDialog.showModal();
@@ -156,11 +166,32 @@ function populateForm(record = blankRecord()) {
 }
 
 async function saveRecord(record) {
-  clearTimeout(autosaveTimer); await store.saveRecord(record); await store.clearDraft();
+  clearTimeout(autosaveTimer);
+  await store.saveRecord(record);
+  await store.clearDraft();
+  await sync?.queueSave(record);
 }
 
 function escapeHtml(valueToEscape = '') {
   return String(valueToEscape).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return 'Unknown';
+  return new Intl.DateTimeFormat('en-AU', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'
+  }).format(date);
+}
+
+function describeSyncEntry(entry) {
+  if (!entry) return { status: 'Local only', time: 'Not synced' };
+  if (entry.state === 'conflict') return { status: 'Conflict needs review', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
+  if (entry.error) return { status: 'Sync error', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
+  if (entry.state === 'pending-save') return { status: 'Pending upload', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
+  if (entry.state === 'pending-delete') return { status: 'Pending deletion', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
+  if (entry.state === 'deleted') return { status: 'Deleted centrally', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
+  return { status: 'Synced', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
 }
 
 async function renderRecords() {
@@ -170,18 +201,33 @@ async function renderRecords() {
     return [record.job?.siteName, record.job?.address, record.job?.reference, record.plant?.name, record.plant?.location, ...unitValues]
       .some((fieldValue) => String(fieldValue || '').toLowerCase().includes(query));
   });
+  const syncEntries = await Promise.all(records.map((record) => store.getSyncEntry(record.id)));
+  const syncEntriesByRecordId = new Map(syncEntries.filter(Boolean).map((entry) => [entry.recordId, entry]));
   recordList.innerHTML = '';
   if (!records.length) { recordList.append(document.querySelector('#emptyStateTemplate').content.cloneNode(true)); return; }
   for (const record of records) {
+    const syncEntry = syncEntriesByRecordId.get(record.id);
+    const savedAt = formatDateTime(record.updatedAt);
+    const syncDetails = describeSyncEntry(syncEntry);
     const faults = (record.units || []).filter((unit) => unit.status === 'Fault / exception').length;
     const card = document.createElement('article'); card.className = 'record-card';
     const outcome = record.results?.outcome; const badgeClass = record.status === 'Draft' ? 'draft' : outcome === 'Failed' ? 'failed' : '';
     card.innerHTML = `
-      <div>
+      <div class="record-job-details">
         <h3>${escapeHtml(record.job?.siteName || 'Unnamed site')}</h3>
         <p class="record-meta">${escapeHtml(record.plant?.name || 'Plant not set')} · ${escapeHtml(record.job?.address || 'Address not set')}</p>
         <p class="record-meta">${record.units?.length || 0} unit${record.units?.length === 1 ? '' : 's'}${faults ? ` · ${faults} fault / exception${faults === 1 ? '' : 's'}` : ''}${record.job?.reference ? ` · Job ${escapeHtml(record.job.reference)}` : ''}</p>
         <span class="badge ${badgeClass}">${escapeHtml(record.status === 'Draft' ? 'Draft' : outcome || 'Completed')}</span>
+      </div>
+      <div class="record-detail-column">
+        <p class="record-column-label">Saved by technician</p>
+        <p class="record-column-value">${escapeHtml(record.job?.technician || 'Not recorded')}</p>
+        <p class="record-meta">${escapeHtml(savedAt)}</p>
+      </div>
+      <div class="record-detail-column">
+        <p class="record-column-label">Sync details</p>
+        <p class="record-column-value">${escapeHtml(syncDetails.status)}</p>
+        <p class="record-meta">${escapeHtml(syncDetails.time)}</p>
       </div>
       <div class="record-actions">
         <button class="button button-secondary" type="button" data-action="edit" data-id="${escapeHtml(record.id)}">Open</button>
@@ -204,6 +250,21 @@ async function openNewRecord() { populateForm((await store.getDraft()) || blankR
 function updateNetworkStatus() {
   const status = document.querySelector('#networkStatus'); status.textContent = navigator.onLine ? 'Online' : 'Offline ready';
   status.classList.toggle('offline', !navigator.onLine);
+}
+
+function updateSyncStatus(syncState = sync?.getStatus?.() || { state: 'local' }) {
+  const element = document.querySelector('#syncStatus');
+  const labels = {
+    local: 'Local only',
+    offline: syncState.pending ? `${syncState.pending} pending` : 'Offline',
+    pending: `${syncState.pending || 0} pending`,
+    syncing: 'Syncing…',
+    synced: syncState.lastSuccessfulSyncAt ? 'Synced just now' : 'Synced',
+    conflict: `${syncState.conflicts} conflict${syncState.conflicts === 1 ? '' : 's'}`,
+    error: 'Sync error'
+  };
+  element.textContent = labels[syncState.state] || 'Local only';
+  element.dataset.state = syncState.state || 'local';
 }
 
 function reportStorageError(error) {
@@ -249,7 +310,14 @@ recordList.addEventListener('click', async (event) => {
     if (button.dataset.action === 'print') setTimeout(() => window.print(), 100);
   }
   if (button.dataset.action === 'delete' && confirm(`Delete the record for ${record.job?.siteName || 'this site'}? This cannot be undone.`)) {
-    await store.deleteRecord(record.id); await renderRecords();
+    try {
+      await sync?.queueDelete(record.id);
+      await store.deleteRecord(record.id);
+      await renderRecords();
+    } catch (error) {
+      storageNotice.textContent = error.message;
+      storageNotice.classList.add('notice-error');
+    }
   }
 });
 
@@ -285,7 +353,6 @@ restoreFile.addEventListener('change', async () => {
   const file = restoreFile.files?.[0];
   restoreFile.value = '';
   if (!file) return;
-  const storageNotice = document.querySelector('#storageNotice');
   storageNotice.classList.remove('notice-error');
   try {
     const records = validateBackup(JSON.parse(await file.text()));
@@ -304,8 +371,13 @@ restoreFile.addEventListener('change', async () => {
   }
 });
 
-window.addEventListener('online', updateNetworkStatus);
-window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('online', () => { updateNetworkStatus(); sync?.syncNow(); });
+window.addEventListener('offline', () => { updateNetworkStatus(); updateSyncStatus({ ...sync?.getStatus?.(), state: 'offline' }); });
+window.addEventListener('commissioning-sync-updated', async (event) => {
+  updateSyncStatus(event.detail.status);
+  if (event.detail.changes?.downloaded || event.detail.changes?.removed) await renderRecords();
+});
+document.querySelector('#syncButton').addEventListener('click', () => sync?.syncNow());
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault(); installPrompt = event; document.querySelector('#installButton').hidden = false;
 });
@@ -329,6 +401,7 @@ signInForm.addEventListener('submit', async (event) => {
     await remote.signIn(document.querySelector('#authEmail').value.trim(), document.querySelector('#authPassword').value);
     signInForm.reset();
     showAuthMessage('Signed in.');
+    authDialog.close();
   } catch (error) { showAuthMessage(error.message, true); }
 });
 
@@ -369,7 +442,7 @@ async function start() {
     if (migration?.migratedRecordCount || migration?.migratedDraft) {
       document.querySelector('#storageNotice').textContent = `${migration.migratedRecordCount} earlier record${migration.migratedRecordCount === 1 ? '' : 's'} moved to IndexedDB on this device.`;
     }
-    updateNetworkStatus(); await renderRecords(); await initialiseAuth();
+    updateNetworkStatus(); updateSyncStatus(); await renderRecords(); await initialiseAuth();
     if ('serviceWorker' in navigator) await navigator.serviceWorker.register('./service-worker.js');
   } catch (error) {
     reportStorageError(error);

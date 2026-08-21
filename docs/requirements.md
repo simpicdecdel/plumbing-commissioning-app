@@ -380,11 +380,12 @@ Priorities use Must, Should, Could and Later.
 - Acceptance criteria:
   - Every server record belongs to one organisation and retains its creating and last-updating user identifiers.
   - Offline changes are queued on the device and sent after connectivity and authentication return.
+  - Each record shows its plumber save time and the current device's most recent successful central synchronisation time.
   - Every write supplies the server revision last seen by that device.
   - A stale revision is reported as a conflict and does not overwrite the current server record.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
-- Implementation state: The database tables and revision-checked functions are defined in the initial migration. Client-side remote record operations, offline queues, conflict handling and local-record migration are not implemented.
+- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client now implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation and safe stale-revision conflict reporting. Automated browser tests use a mocked shared service. Live Supabase record synchronisation and the full permission matrix remain unverified. There is no conflict-resolution screen yet. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
 
 ### REQ-SEC-004: Public repository hygiene
 

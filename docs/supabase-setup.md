@@ -1,6 +1,6 @@
 # Supabase multi-user foundation
 
-This document covers the authentication and database foundation for the accepted multi-user design. The browser authentication client is connected and the production public configuration is present. Commissioning record storage remains local-only until synchronisation and local-record migration are implemented and verified.
+This document covers the authentication, database and initial local-first synchronisation implementation for the accepted multi-user design. The browser client is connected and the production public configuration is present. Live record synchronisation still requires the verification described below.
 
 ## Current implementation boundary
 
@@ -14,16 +14,20 @@ Implemented in this repository:
 - A production project URL and browser-safe publishable key in `config.js`.
 - Production tables, RLS enablement, policies, security-definer function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026.
 - A live administrator sign-in was verified manually on 20 August 2026.
+- Remote record reads and revision-checked saves through the authenticated Supabase functions.
+- An IndexedDB outbox for signed-in saves and administrator deletes, including offline retry.
+- Cross-device download, remote delete propagation and safe revision-conflict reporting.
+- Automated browser coverage against a mocked shared service.
 
 Not yet implemented or verified:
 
-- Remote commissioning record reads, writes, deletion or restoration.
-- Offline change queues, revision conflict handling and synchronisation.
-- Role enforcement for local delete or backup restore.
-- Migration of existing IndexedDB records to Supabase.
+- A conflict-resolution screen. Conflicting local and server versions are retained for a later resolution workflow.
+- Role enforcement for local-only delete or backup restore.
+- User-confirmed upload of records that existed locally before synchronisation was introduced.
 - Automated live tests for the complete technician, administrator, revoked-user and cross-organisation permission matrix.
+- A live two-device verification of record upload, download, offline retry, conflict behaviour and soft deletion.
 
-Signing in therefore does not yet restrict access to records held in the browser on that device.
+Signing in does not restrict access to records held in the browser on that device. Existing local records are deliberately not uploaded merely by signing in.
 
 ## Production shape
 
@@ -79,7 +83,7 @@ pnpm install
 pnpm build:remote
 ```
 
-8. Serve the app with `pnpm start` and verify sign-in, password recovery, sign-out and organisation membership display.
+8. Serve the app with `pnpm start` and verify sign-in, password recovery, sign-out, organisation membership display and a clearly labelled test record on two devices.
 
 ## What the migration enforces
 
@@ -92,7 +96,7 @@ pnpm build:remote
 
 ## Verification required before live use
 
-Static repository tests check that the migration contains the intended controls. Authentication UI tests use a mocked remote client. Manual production verification covered the deployed structure, grants, anonymous read denial, administrator membership and administrator sign-in, but it did not prove the complete permission matrix. Before treating sign-in as record access control or enabling remote record storage, run integration tests against a separate Supabase test project covering:
+Static repository tests check that the migration contains the intended controls. Authentication and synchronisation UI tests use a mocked remote client. Manual production verification covered the deployed structure, grants, anonymous read denial, administrator membership and administrator sign-in, but it did not prove live record synchronisation or the complete permission matrix. Before treating this build as ready for live customer records, run integration tests against a separate Supabase test project covering:
 
 - Anonymous access denial.
 - Technician and administrator permissions.

@@ -11,6 +11,10 @@ window.commissioningRemote = (() => {
     getState: () => state,
     isRecovery: () => false,
     onStateChange: (listener) => listeners.add(listener),
+    listRecords: async () => [],
+    getRecord: async () => null,
+    saveRecord: async () => undefined,
+    deleteRecord: async () => undefined,
     sendPasswordSetupEmail: async () => undefined,
     signIn: async (email) => {
       state = { user: { email }, membership: { role: 'administrator', organisationName: 'Plumbing Commissioning' }, recovery: false };

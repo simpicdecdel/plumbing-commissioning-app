@@ -13,6 +13,15 @@ function notify(nextState) {
   return state;
 }
 
+function firstRow(data) {
+  return Array.isArray(data) ? data[0] : data;
+}
+
+function requireData(data, error) {
+  if (error) throw error;
+  return data;
+}
+
 async function loadMembership(user) {
   if (!user) return null;
   const { data, error } = await client.from('organisation_members')
@@ -58,8 +67,9 @@ if (config.enabled) {
     async initialise() {
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
-      client.auth.onAuthStateChange(async (event, session) => {
-        await resolveState(session, event === 'PASSWORD_RECOVERY');
+      client.auth.onAuthStateChange((event, session) => {
+        setTimeout(() => resolveState(session, event === 'PASSWORD_RECOVERY')
+          .catch((authError) => console.error('Could not update authentication state.', authError)), 0);
       });
       return resolveState(data.session, isRecovery());
     },
@@ -83,6 +93,38 @@ if (config.enabled) {
       const { error } = await client.auth.signOut();
       if (error) throw error;
       return resolveState(null, false);
+    },
+    async listRecords(organisationId) {
+      const { data, error } = await client.from('commissioning_records')
+        .select('id, payload, revision, updated_at, deleted_at')
+        .eq('organisation_id', organisationId)
+        .order('updated_at', { ascending: true });
+      return requireData(data, error) || [];
+    },
+    async getRecord(organisationId, remoteId) {
+      const { data, error } = await client.from('commissioning_records')
+        .select('id, payload, revision, updated_at, deleted_at')
+        .eq('organisation_id', organisationId)
+        .eq('id', remoteId)
+        .maybeSingle();
+      return requireData(data, error);
+    },
+    async saveRecord({ remoteId, organisationId, record, expectedRevision }) {
+      const { data, error } = await client.rpc('save_commissioning_record', {
+        record_id: remoteId,
+        target_organisation_id: organisationId,
+        record_payload: record,
+        expected_revision: expectedRevision
+      });
+      return firstRow(requireData(data, error));
+    },
+    async deleteRecord({ remoteId, organisationId, expectedRevision }) {
+      const { data, error } = await client.rpc('soft_delete_commissioning_record', {
+        record_id: remoteId,
+        target_organisation_id: organisationId,
+        expected_revision: expectedRevision
+      });
+      return firstRow(requireData(data, error));
     }
   };
 }

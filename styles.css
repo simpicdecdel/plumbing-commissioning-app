@@ -45,6 +45,9 @@ button { cursor: pointer; }
 .app-version { color: #d6e8ea; font-size: .75rem; white-space: nowrap; }
 .status-pill { border: 1px solid rgb(255 255 255 / 35%); border-radius: 999px; padding: .35rem .65rem; font-size: .8rem; white-space: nowrap; }
 .status-pill.offline { background: #7c352f; }
+.sync-status[data-state="synced"] { background: #146b4a; }
+.sync-status[data-state="pending"], .sync-status[data-state="syncing"] { background: #835713; }
+.sync-status[data-state="conflict"], .sync-status[data-state="error"] { background: #7c352f; }
 
 .shell { width: min(1120px, calc(100% - 2rem)); margin: 1.5rem auto 4rem; }
 .tabs { display: flex; gap: .25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--line); }
@@ -81,9 +84,12 @@ input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px s
 .notice { margin: 1rem 0; padding-left: .8rem; border-left: 3px solid var(--accent); color: var(--muted); font-size: .9rem; }
 .notice-error, .save-status.error { color: var(--danger); }
 .record-list { display: grid; gap: .75rem; }
-.record-card { display: grid; grid-template-columns: 1fr auto; gap: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
+.record-card { display: grid; grid-template-columns: minmax(0, 2fr) minmax(9rem, 1fr) minmax(9rem, 1fr) auto; gap: 1.25rem; align-items: center; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
 .record-card h3 { margin: 0 0 .15rem; font-size: 1.05rem; }
 .record-meta { margin: 0; color: var(--muted); font-size: .88rem; }
+.record-detail-column { min-width: 0; padding-left: 1rem; border-left: 1px solid var(--line); }
+.record-column-label { margin: 0 0 .25rem; color: var(--brand); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.record-column-value { margin: 0 0 .15rem; color: var(--ink); font-size: .9rem; font-weight: 750; }
 .record-actions { display: flex; align-items: center; gap: .45rem; }
 .badge { display: inline-block; margin-top: .5rem; border-radius: 999px; padding: .2rem .55rem; background: #e8f4ef; color: var(--success); font-size: .76rem; font-weight: 800; }
 .badge.draft { background: #fff3dd; color: #835713; }
@@ -136,6 +142,7 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
   .form-grid, .form-grid-3, .check-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: auto; }
   .record-card { grid-template-columns: 1fr; }
+  .record-detail-column { padding: .75rem 0 0; border-top: 1px solid var(--line); border-left: 0; }
   .record-actions { flex-wrap: wrap; }
   .form-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
   .auth-actions { align-items: stretch; flex-direction: column; }
