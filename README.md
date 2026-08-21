@@ -25,8 +25,11 @@ The current PWA can:
 - Print a record, export all records as a versioned JSON backup and restore a valid backup.
 - Install as a PWA and reload its application shell without a network connection after the first successful load.
 - Sign invited Supabase users in and out, request a password setup email, complete password recovery and show their organisation role.
+- Queue signed-in record changes locally, synchronise them with the user's organisation and download changes made on another device.
+- Preserve an offline edit when its server revision is stale and report the resulting conflict instead of overwriting the newer server record.
+- Show when each record was saved by the plumber and when the current device last synchronised it with the central database.
 
-The authentication client is active, but commissioning records are not yet read from or written to Supabase. Local records, delete and backup restore remain available without signing in. Treat this as an authentication foundation, not as access control for the local record store.
+New records and edits are synchronised only while an organisation member is signed in. Records that already existed on a device before this update remain local until the user edits them; they are not uploaded merely by signing in. Local records and backup restore remain available without signing in, so authentication still does not gate the local record store. A synchronised server record can be deleted only by an administrator, while a local-only record can still be deleted locally.
 
 ## Confirmed behaviour
 
@@ -54,7 +57,7 @@ Records and the current autosaved draft are held in IndexedDB in the browser pro
 
 On the first run after this update, the storage layer looks for the previous `localStorage` record and draft keys. Each earlier one-appliance record is converted into a one-plant record containing one unit. The old values are removed only after the IndexedDB transaction succeeds. A migrated failure is retained as a unit fault / exception, with the earlier notes copied into its exception detail.
 
-Clearing site data, losing the device or uninstalling the browser can still remove records. Export backups regularly. Do not use this MVP as the only permanent business record until central storage, access control and restore have been implemented and tested.
+Clearing site data, losing the device or uninstalling the browser can still remove unsynchronised records. Export backups regularly. Do not use this MVP as the only permanent business record until the live synchronisation, access-control and recovery paths have been fully tested.
 
 ## Install and run locally
 
@@ -117,7 +120,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.3.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation and the authentication UI. Authentication browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
+The browser suite checks the v0.4.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication, cross-device synchronisation, offline queueing and revision conflicts. Authentication and synchronisation browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 
@@ -138,12 +141,12 @@ Account UI in app.js
       -> Supabase Authentication and organisation membership lookup
 ```
 
-The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The full technician, administrator and cross-organisation permission matrix has not been integration-tested. Authentication does not yet gate local record operations, and commissioning record synchronisation is not implemented.
+The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The full technician, administrator and cross-organisation permission matrix has not been integration-tested. The synchronisation workflow has automated coverage against a mocked shared service, but its live Supabase record operations have not yet been verified. Authentication does not gate local record access or backup restore.
 
-The planned synchronisation boundary is:
+The synchronisation boundary is:
 
 ```text
-UI and future sync orchestration
+UI and sync orchestration in sync.js
   -> local-first synchronisation service
       -> commissioningStore in storage.js -> Dexie -> IndexedDB
       -> authenticated Supabase functions -> PostgreSQL with row-level security

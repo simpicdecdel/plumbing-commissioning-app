@@ -81,16 +81,16 @@ This log records material product decisions and their reasons. Changing an accep
 - Decision: Use a managed Supabase project in Sydney for invite-only email authentication, central commissioning records and database-enforced organisation roles. Retain IndexedDB as the offline working store. Use revision-checked writes and explicit conflict resolution rather than last-write-wins updates.
 - Reason: Multiple technicians and office users need shared records without making one business-managed server the production availability and security boundary.
 - Alternatives considered: Continue with device-only records; self-host the central services on OfficeDev; use Firebase.
-- Risks and trade-offs: The service creates an external operating cost and vendor dependency. Offline synchronisation, conflict handling and local-record migration still require application code and live integration tests.
+- Risks and trade-offs: The service creates an external operating cost and vendor dependency. Conflict resolution, confirmed migration of earlier local records and live integration tests still require work.
 - Review trigger: Cost, data residency, availability or integration constraints become unacceptable, or the business gains the capacity to operate and secure the full service itself.
 - Replaces: The remaining local-only aspect of DEC-007. The IndexedDB storage boundary remains accepted.
 
-### Implementation status at 20 August 2026
+### Implementation status at 21 August 2026
 
-- Implemented: authentication client, sign-in, password setup and recovery, sign-out, membership display, public production configuration, deployed initial database migration and static security tests.
-- Not implemented: remote commissioning record operations, local-to-remote migration, offline synchronisation, conflict resolution in the client, and role enforcement for local delete or restore.
+- Implemented: authentication client, sign-in, password setup and recovery, sign-out, membership display, public production configuration, deployed initial database migration, static security tests, local-first synchronisation, offline queueing, cross-device download and safe conflict reporting.
+- Not implemented: conflict-resolution UI, confirmed local-to-remote migration, role enforcement for local-only delete or backup restore, and server-side restore UI.
 - Manually verified on 20 August 2026: production tables, RLS enablement, policies, security-definer function grants, anonymous read denial, administrator membership and live administrator sign-in.
-- Not verified: the complete technician, administrator, revoked-user and cross-organisation permission matrix through automated live integration tests.
+- Not verified: live Supabase record synchronisation or the complete technician, administrator, revoked-user and cross-organisation permission matrix through automated live integration tests.
 
 ## Decision entry template
 
