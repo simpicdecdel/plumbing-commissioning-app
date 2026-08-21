@@ -17,15 +17,15 @@ Implemented in this repository:
 - Remote record reads and revision-checked saves through the authenticated Supabase functions.
 - An IndexedDB outbox for signed-in saves and administrator deletes, including offline retry.
 - Cross-device download, remote delete propagation and safe revision-conflict reporting.
+- Explicit conflict resolution using either the retained technician version or the current central version.
 - Automated browser coverage against a mocked shared service.
 
 Not yet implemented or verified:
 
-- A conflict-resolution screen. Conflicting local and server versions are retained for a later resolution workflow.
 - Role enforcement for local-only delete or backup restore.
 - User-confirmed upload of records that existed locally before synchronisation was introduced.
 - Automated live tests for the complete technician, administrator, revoked-user and cross-organisation permission matrix.
-- A live two-device verification of record upload, download, offline retry, conflict behaviour and soft deletion.
+- A live two-device verification of offline retry, conflict resolution and soft deletion. Cross-origin upload and download were verified manually on 21 August 2026.
 
 Signing in does not restrict access to records held in the browser on that device. Existing local records are deliberately not uploaded merely by signing in.
 
@@ -48,6 +48,8 @@ The browser may contain only these public values:
 - An `sb_publishable_...` key.
 
 Never put a Supabase secret key, legacy `service_role` key, database password, access token or customer record in this repository. A publishable key identifies the project but does not grant record access by itself. Authentication and row-level security provide access control.
+
+The server-side live-test harness uses a secret key and the explicit `service_role` table grants in `20260821000000_service_role_test_admin.sql`. That role bypasses row-level security and can administer all application rows. It must be used only by trusted server-side test code and revoked before production if the live harness will not remain in use.
 
 ## Create the managed project
 
@@ -107,5 +109,16 @@ Static repository tests check that the migration contains the intended controls.
 - Upload of existing local records without duplication.
 
 Run the current static schema checks with `pnpm test:schema` and the full local suite with `pnpm test`.
+
+### Disposable live-test identities
+
+The opt-in live integration suite uses the Supabase Auth Admin API from Node, never from browser code. It requires a dedicated test project and a secret key supplied through `PLUMBING_TEST_SUPABASE_SECRET_KEY`. Each run creates three auto-confirmed users with reserved `example.invalid` addresses and identifying Auth metadata:
+
+- An administrator and technician in one temporary organisation.
+- An outsider in a second temporary organisation for isolation checks.
+
+The suite deletes test records first, followed by memberships, organisations and Auth users. This order satisfies the database foreign keys. `pnpm test:live:cleanup -- --confirm` removes tagged fixtures left by an interrupted run and stops if any tagged user belongs to a non-test organisation.
+
+Do not run these tests against the eventual production project. Configure a separate Supabase project or branch and store the URL, publishable key and secret key only in `.env.live-tests` or GitHub environment secrets.
 
 Do not upload existing phone records until the live project has passed these tests and a fresh JSON backup has been exported.

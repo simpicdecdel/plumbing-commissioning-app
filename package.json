@@ -1,6 +1,6 @@
 {
   "name": "plumbing-commissioning-pwa",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",
@@ -8,6 +8,10 @@
     "start": "node scripts/serve.mjs",
     "build:remote": "node scripts/build-remote-client.mjs",
     "test": "pnpm test:schema && playwright test",
+    "test:live": "pnpm test:live:api && pnpm test:live:browser",
+    "test:live:api": "node --test tests/live/supabase-permissions.test.mjs",
+    "test:live:browser": "playwright test --config=playwright.live.config.js",
+    "test:live:cleanup": "node scripts/cleanup-live-test-users.mjs",
     "test:schema": "node --test tests/schema/*.test.js",
     "test:iphone": "playwright test --project=iphone-webkit",
     "test:iphone:headed": "playwright test --project=iphone-webkit --headed",

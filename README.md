@@ -27,6 +27,7 @@ The current PWA can:
 - Sign invited Supabase users in and out, request a password setup email, complete password recovery and show their organisation role.
 - Queue signed-in record changes locally, synchronise them with the user's organisation and download changes made on another device.
 - Preserve an offline edit when its server revision is stale and report the resulting conflict instead of overwriting the newer server record.
+- Resolve a revision conflict by reviewing both versions and deliberately choosing the central or technician version.
 - Show when each record was saved by the plumber and when the current device last synchronised it with the central database.
 
 New records and edits are synchronised only while an organisation member is signed in. Records that already existed on a device before this update remain local until the user edits them; they are not uploaded merely by signing in. Local records and backup restore remain available without signing in, so authentication still does not gate the local record store. A synchronised server record can be deleted only by an administrator, while a local-only record can still be deleted locally.
@@ -120,9 +121,27 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.4.0 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication, cross-device synchronisation, offline queueing and revision conflicts. Authentication and synchronisation browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
+The browser suite checks the v0.4.1 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication, cross-device synchronisation, offline queueing, revision conflicts and both conflict-resolution choices. Authentication and synchronisation browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
+
+## Live Supabase integration testing
+
+The normal test suite never requires privileged credentials and uses a mocked shared service. The opt-in live suite creates a unique administrator, technician and isolated outsider in an approved Supabase test project. It verifies real authentication, organisation isolation, revision conflicts, administrator-only deletion and restore, cross-browser synchronisation and the conflict-resolution UI. Every run deletes its records, memberships, organisations and Auth users in cleanup.
+
+Copy `.env.live-tests.example` to `.env.live-tests` and supply values from a dedicated test project. Use a Supabase secret key only in this server-side test environment. Never put it in `config.js`, a browser bundle, a commit or a test report.
+
+```text
+pnpm test:live
+```
+
+If a test process is forcibly stopped before cleanup, remove all tagged test fixtures with:
+
+```text
+pnpm test:live:cleanup -- --confirm
+```
+
+The cleanup command refuses to delete a tagged user if that user belongs to an organisation whose name is not marked as an automated live-test organisation. The GitHub workflow is manual-only and requires the three `PLUMBING_TEST_SUPABASE_*` values to be configured as secrets in the `supabase-test` environment.
 
 ## Current architecture boundaries
 

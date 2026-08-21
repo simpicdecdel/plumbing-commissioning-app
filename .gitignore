@@ -3,3 +3,6 @@ playwright-report/
 test-results/
 .playwright/
 .pnpm-store/
+.env
+.env.*
+!.env.live-tests.example

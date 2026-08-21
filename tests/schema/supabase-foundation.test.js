@@ -5,6 +5,7 @@ import { validateRemoteConfig } from '../../remote-config.js';
 
 const migrationUrl = new URL('../../supabase/migrations/20260820000000_initial_multi_user_schema.sql', import.meta.url);
 const migration = await readFile(migrationUrl, 'utf8');
+const conflictMigration = await readFile(new URL('../../supabase/migrations/20260821001000_http_conflict_status.sql', import.meta.url), 'utf8');
 const productionConfigUrl = new URL('../../config.js', import.meta.url);
 const productionConfig = await readFile(productionConfigUrl, 'utf8');
 
@@ -17,6 +18,12 @@ test('all exposed tables enable row-level security', () => {
 test('anonymous and direct authenticated writes are revoked', () => {
   assert.match(migration, /revoke all on table public\.commissioning_records from anon, authenticated;/i);
   assert.doesNotMatch(migration, /grant (insert|update|delete|all)[^;]*commissioning_records[^;]*authenticated/i);
+});
+
+test('service role has explicit server-side fixture administration grants', async () => {
+  const migration = await readFile(new URL('../../supabase/migrations/20260821000000_service_role_test_admin.sql', import.meta.url), 'utf8');
+  assert.match(migration, /grant select, insert, update, delete[\s\S]*public\.organisations[\s\S]*public\.organisation_members[\s\S]*public\.commissioning_records[\s\S]*to service_role/i);
+  assert.doesNotMatch(migration, /\bto\s+(anon|authenticated)\b/i);
 });
 
 test('write functions use fixed search paths and explicit grants', () => {
@@ -37,6 +44,7 @@ test('write functions use fixed search paths and explicit grants', () => {
 test('revision checks and administrator-only lifecycle operations are defined', () => {
   assert.match(migration, /and revision = expected_revision/i);
   assert.match(migration, /errcode = '40001'/i);
+  assert.match(conflictMigration, /'40001'[^]*'PT409'/i);
   assert.match(migration, /private\.is_organisation_administrator\(target_organisation_id\)/i);
   assert.match(migration, /deleted_at = now\(\)/i);
   assert.match(migration, /deleted_at = null/i);

@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.0-sync4">
+  <link rel="stylesheet" href="styles.css?v=0.4.1-conflict">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,7 +17,7 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.4.0">v0.4.0</span>
+        <span class="app-version" aria-label="Application version 0.4.1">v0.4.1</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
       <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
@@ -186,6 +186,34 @@
     <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
   </dialog>
 
+  <dialog id="conflictDialog" class="auth-dialog conflict-dialog" aria-labelledby="conflictTitle">
+    <div class="auth-dialog-header">
+      <div>
+        <p class="eyebrow">SYNC CONFLICT</p>
+        <h2 id="conflictTitle">Choose which version to keep</h2>
+      </div>
+      <button id="closeConflictButton" class="button button-secondary button-small" type="button">Close</button>
+    </div>
+    <p class="field-help">Another device saved this record after the version on this device. Review both versions before choosing.</p>
+    <div class="conflict-comparison">
+      <section class="conflict-version">
+        <p class="record-column-label">Technician version on this device</p>
+        <h3 id="conflictLocalSite"></h3>
+        <p id="conflictLocalDetails" class="record-meta"></p>
+      </section>
+      <section class="conflict-version">
+        <p class="record-column-label">Current central version</p>
+        <h3 id="conflictCentralSite"></h3>
+        <p id="conflictCentralDetails" class="record-meta"></p>
+      </section>
+    </div>
+    <div class="conflict-actions">
+      <button id="useCentralButton" class="button button-secondary" type="button">Use central version</button>
+      <button id="keepTechnicianButton" class="button button-primary" type="button">Keep technician version</button>
+    </div>
+    <p id="conflictMessage" class="auth-message" role="status" aria-live="polite"></p>
+  </dialog>
+
   <template id="emptyStateTemplate">
     <div class="empty-state">
       <div class="empty-icon" aria-hidden="true">✓</div>
@@ -217,11 +245,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js?v=0.4.0-sync4" defer></script>
-  <script src="storage.js?v=0.4.0-sync4" defer></script>
-  <script src="config.js?v=0.4.0-sync4" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.0-sync4" defer></script>
-  <script src="sync.js?v=0.4.0-sync4" defer></script>
-  <script src="app.js?v=0.4.0-sync4" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.1-conflict" defer></script>
+  <script src="storage.js?v=0.4.1-conflict" defer></script>
+  <script src="config.js?v=0.4.1-conflict" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.1-conflict" defer></script>
+  <script src="sync.js?v=0.4.1-conflict" defer></script>
+  <script src="app.js?v=0.4.1-conflict" defer></script>
 </body>
 </html>

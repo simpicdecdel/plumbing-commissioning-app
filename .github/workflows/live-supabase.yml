@@ -1,0 +1,37 @@
+name: Live Supabase integration tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plumbing-live-supabase-tests
+  cancel-in-progress: false
+
+jobs:
+  live-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: supabase-test
+    env:
+      PLUMBING_LIVE_TESTS: '1'
+      PLUMBING_TEST_SUPABASE_URL: ${{ secrets.PLUMBING_TEST_SUPABASE_URL }}
+      PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY }}
+      PLUMBING_TEST_SUPABASE_SECRET_KEY: ${{ secrets.PLUMBING_TEST_SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install WebKit
+        run: pnpm exec playwright install --with-deps webkit
+      - name: Run live API and browser tests
+        run: pnpm test:live

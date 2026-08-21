@@ -11,7 +11,7 @@ window.commissioningRemote = (() => {
   const readRows = () => JSON.parse(localStorage.getItem('mock-server-records') || '[]');
   const writeRows = (rows) => localStorage.setItem('mock-server-records', JSON.stringify(rows));
   const emit = () => listeners.forEach((listener) => listener(state));
-  const conflict = () => { const error = new Error('Record revision conflict'); error.code = '40001'; throw error; };
+  const conflict = () => { const error = new Error('Record revision conflict'); error.code = 'PT409'; throw error; };
   return {
     enabled: true,
     initialise: async () => state,
@@ -31,7 +31,13 @@ window.commissioningRemote = (() => {
       return state;
     },
     sendPasswordSetupEmail: async () => undefined,
-    listRecords: async () => localStorage.getItem('mock-hide-server-records') === 'true' ? [] : readRows(),
+    listRecords: async () => {
+      if (localStorage.getItem('mock-hide-server-records') === 'true') return [];
+      const staleRows = localStorage.getItem('mock-stale-server-response');
+      if (!staleRows) return readRows();
+      localStorage.removeItem('mock-stale-server-response');
+      return JSON.parse(staleRows);
+    },
     getRecord: async (_organisationId, remoteId) => readRows().find((row) => row.id === remoteId) || null,
     saveRecord: async ({ remoteId, record, expectedRevision }) => {
       const rows = readRows();
@@ -83,6 +89,22 @@ async function createRecord(page, siteName) {
   await page.locator('[data-unit-field="label"]').first().fill('SYNC-HWS-01');
   await page.locator('#outcome').selectOption('Passed');
   await page.getByRole('button', { name: 'Complete record' }).click();
+}
+
+async function createConflict(page, localName = 'Local Conflicting Edit', centralName = 'Server Edit') {
+  await createRecord(page, 'Original Site');
+  await expect(page.locator('#syncStatus')).toHaveText('Synced just now');
+  await page.locator('.record-card').filter({ hasText: 'Original Site' }).getByRole('button', { name: 'Open' }).click();
+  await page.locator('#customer').fill(localName);
+  await page.evaluate((serverSiteName) => {
+    const rows = JSON.parse(localStorage.getItem('mock-server-records'));
+    rows[0].revision = 2;
+    rows[0].payload.job.siteName = serverSiteName;
+    rows[0].updated_at = new Date().toISOString();
+    localStorage.setItem('mock-server-records', JSON.stringify(rows));
+  }, centralName);
+  await page.getByRole('button', { name: 'Complete record' }).click();
+  await expect(page.locator('#syncStatus')).toHaveText('1 conflict');
 }
 
 test('uploads on one fresh device and downloads on another', async ({ browser }) => {
@@ -153,27 +175,74 @@ test('keeps a saved local record when a server list response omits it', async ({
   await context.close();
 });
 
+test('does not replace a newer local revision with a stale server response', async ({ browser }) => {
+  const context = await createContext(browser);
+  const page = await context.newPage();
+  await page.goto(appUrl);
+  await signIn(page);
+  await createRecord(page, 'Original revision');
+  await expect(page.locator('#syncStatus')).toHaveText('Synced just now');
+
+  await page.locator('.record-card').filter({ hasText: 'Original revision' }).getByRole('button', { name: 'Open' }).click();
+  await page.locator('#customer').fill('Newer local revision');
+  await page.evaluate(() => localStorage.setItem('mock-stale-server-response', localStorage.getItem('mock-server-records')));
+  await page.getByRole('button', { name: 'Complete record' }).click();
+
+  await expect(page.locator('.record-card').filter({ hasText: 'Newer local revision' })).toBeVisible();
+  await expect(page.locator('.record-card').filter({ hasText: 'Original revision' })).toHaveCount(0);
+  await context.close();
+});
+
 test('preserves the local edit and reports a revision conflict', async ({ browser }) => {
   const context = await createContext(browser);
   const page = await context.newPage();
   await page.goto(appUrl);
   await signIn(page);
-  await createRecord(page, 'Original Site');
-  await expect(page.locator('#syncStatus')).toHaveText('Synced just now');
-
-  await page.locator('.record-card').filter({ hasText: 'Original Site' }).getByRole('button', { name: 'Open' }).click();
-  await page.locator('#customer').fill('Local Conflicting Edit');
-  await page.evaluate(() => {
-    const rows = JSON.parse(localStorage.getItem('mock-server-records'));
-    rows[0].revision = 2;
-    rows[0].payload.job.siteName = 'Server Edit';
-    rows[0].updated_at = new Date().toISOString();
-    localStorage.setItem('mock-server-records', JSON.stringify(rows));
-  });
-  await page.getByRole('button', { name: 'Complete record' }).click();
-
-  await expect(page.locator('#syncStatus')).toHaveText('1 conflict');
+  await createConflict(page);
   await expect(page.locator('.record-card').filter({ hasText: 'Local Conflicting Edit' })).toBeVisible();
   await expect(page.locator('.record-card').filter({ hasText: 'Server Edit' })).toHaveCount(0);
+  await expect(page.locator('.record-card').getByRole('button', { name: 'Resolve' })).toBeVisible();
+  await context.close();
+});
+
+test('resolves a conflict by using the central version', async ({ browser }) => {
+  const context = await createContext(browser);
+  const page = await context.newPage();
+  await page.goto(appUrl);
+  await signIn(page);
+  await createConflict(page);
+
+  await page.getByRole('button', { name: 'Resolve' }).click();
+  const dialog = page.locator('#conflictDialog');
+  await expect(dialog.getByText('Local Conflicting Edit', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Server Edit', { exact: true })).toBeVisible();
+  page.once('dialog', (confirmation) => confirmation.accept());
+  await dialog.getByRole('button', { name: 'Use central version' }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.record-card').filter({ hasText: 'Server Edit' })).toBeVisible();
+  await expect(page.locator('.record-card').filter({ hasText: 'Local Conflicting Edit' })).toHaveCount(0);
+  await expect(page.locator('#syncStatus')).toHaveText('Synced just now');
+  await context.close();
+});
+
+test('resolves a conflict by keeping the technician version', async ({ browser }) => {
+  const context = await createContext(browser);
+  const page = await context.newPage();
+  await page.goto(appUrl);
+  await signIn(page);
+  await createConflict(page);
+
+  await page.getByRole('button', { name: 'Resolve' }).click();
+  const dialog = page.locator('#conflictDialog');
+  page.once('dialog', (confirmation) => confirmation.accept());
+  await dialog.getByRole('button', { name: 'Keep technician version' }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.record-card').filter({ hasText: 'Local Conflicting Edit' })).toBeVisible();
+  await expect(page.locator('#syncStatus')).toHaveText('Synced just now');
+  const central = await page.evaluate(() => JSON.parse(localStorage.getItem('mock-server-records'))[0]);
+  expect(central.payload.job.siteName).toBe('Local Conflicting Edit');
+  expect(central.revision).toBe(3);
   await context.close();
 });
