@@ -3,11 +3,13 @@ import { getRemoteConfig } from '../remote-config.js';
 
 const config = getRemoteConfig(window);
 const listeners = new Set();
-let state = Object.freeze({ user: null, membership: null, recovery: isRecovery() });
+let recoveryMode = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
+let state = Object.freeze({ user: null, membership: null, recovery: recoveryMode });
 let client;
 
-function isRecovery() { return new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery'; }
+function isRecovery() { return recoveryMode; }
 function notify(nextState) {
+  recoveryMode = Boolean(nextState.recovery);
   state = Object.freeze(nextState);
   listeners.forEach((listener) => listener(state));
   return state;
@@ -59,6 +61,11 @@ if (config.enabled) {
   client = createClient(config.supabaseUrl, config.supabasePublishableKey, {
     auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
   });
+  client.auth.onAuthStateChange((event, session) => {
+    const recovery = event === 'PASSWORD_RECOVERY' || (event === 'INITIAL_SESSION' && recoveryMode);
+    setTimeout(() => resolveState(session, recovery)
+      .catch((authError) => console.error('Could not update authentication state.', authError)), 0);
+  });
   api = {
     enabled: true,
     getState: () => state,
@@ -67,10 +74,6 @@ if (config.enabled) {
     async initialise() {
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
-      client.auth.onAuthStateChange((event, session) => {
-        setTimeout(() => resolveState(session, event === 'PASSWORD_RECOVERY')
-          .catch((authError) => console.error('Could not update authentication state.', authError)), 0);
-      });
       return resolveState(data.session, isRecovery());
     },
     async signIn(email, password) {
