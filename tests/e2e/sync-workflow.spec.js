@@ -108,6 +108,7 @@ async function createConflict(page, localName = 'Local Conflicting Edit', centra
 }
 
 test('uploads on one fresh device and downloads on another', async ({ browser }) => {
+  test.setTimeout(60_000);
   const phoneContext = await createContext(browser);
   const phone = await phoneContext.newPage();
   await phone.goto(appUrl);

@@ -24,7 +24,7 @@ function resolveRequestPath(requestUrl = '/') {
   return requestedPath === root || requestedPath.startsWith(`${root}${path.sep}`) ? requestedPath : null;
 }
 
-const server = createServer(async (request, response) => {
+export const server = createServer(async (request, response) => {
   if (!['GET', 'HEAD'].includes(request.method || '')) {
     response.writeHead(405, { Allow: 'GET, HEAD' });
     response.end();
