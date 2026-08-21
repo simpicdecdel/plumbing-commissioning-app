@@ -279,6 +279,74 @@
       if (!existing) return;
       await database.sync.put({ ...existing, error: message, updatedAt: new Date().toISOString() });
     },
+    async resolveConflictWithServer(recordId, organisationId) {
+      await ready;
+      return database.transaction('rw', database.records, database.sync, async () => {
+        const entry = await database.sync.get(recordId);
+        if (!entry || entry.organisationId !== organisationId || entry.state !== 'conflict') {
+          throw new Error('This record no longer has a conflict to resolve.');
+        }
+        const serverRecord = entry.serverRecord;
+        if (!serverRecord) throw new Error('The central version is unavailable. Sync again before resolving this conflict.');
+
+        if (serverRecord.deleted_at) {
+          await database.records.delete(recordId);
+          await database.sync.put({
+            ...entry,
+            revision: serverRecord.revision,
+            state: 'deleted',
+            pendingRecord: null,
+            serverRecord: null,
+            error: null,
+            lastSyncedAt: new Date().toISOString(),
+            updatedAt: serverRecord.updated_at || new Date().toISOString()
+          });
+          return { record: null, deleted: true };
+        }
+
+        if (!serverRecord.payload || typeof serverRecord.payload !== 'object' || Array.isArray(serverRecord.payload)) {
+          throw new Error('The central version is invalid and cannot replace the technician version.');
+        }
+        const record = { ...copy(serverRecord.payload), id: recordId };
+        await database.records.put(record);
+        await database.sync.put({
+          ...entry,
+          revision: serverRecord.revision,
+          state: 'synced',
+          pendingRecord: null,
+          serverRecord: null,
+          error: null,
+          lastSyncedAt: new Date().toISOString(),
+          updatedAt: serverRecord.updated_at || new Date().toISOString()
+        });
+        return { record, deleted: false };
+      });
+    },
+    async queueConflictTechnicianVersion(recordId, organisationId) {
+      await ready;
+      return database.transaction('rw', database.records, database.sync, async () => {
+        const entry = await database.sync.get(recordId);
+        if (!entry || entry.organisationId !== organisationId || entry.state !== 'conflict') {
+          throw new Error('This record no longer has a conflict to resolve.');
+        }
+        if (!entry.serverRecord || entry.serverRecord.deleted_at) {
+          throw new Error('The current central revision is unavailable. Sync again before keeping the technician version.');
+        }
+        const record = await database.records.get(recordId);
+        if (!record) throw new Error('The technician version is no longer available on this device.');
+        const queued = {
+          ...entry,
+          revision: entry.serverRecord.revision,
+          state: 'pending-save',
+          pendingRecord: copy(record),
+          serverRecord: null,
+          error: null,
+          updatedAt: new Date().toISOString()
+        };
+        await database.sync.put(queued);
+        return queued;
+      });
+    },
     async applyRemoteRecords(organisationId, remoteRecords) {
       await ready;
       return database.transaction('rw', database.records, database.sync, async () => {
@@ -290,6 +358,7 @@
         for (const remoteRecord of remoteRecords) {
           const existing = byRemoteId.get(remoteRecord.id);
           if (existing && ['pending-save', 'pending-delete', 'conflict'].includes(existing.state)) continue;
+          if (existing?.revision && remoteRecord.revision < existing.revision) continue;
 
           const recordId = existing?.recordId || remoteRecord.payload?.id || remoteRecord.id;
           if (remoteRecord.deleted_at) {

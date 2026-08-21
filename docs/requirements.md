@@ -383,9 +383,10 @@ Priorities use Must, Should, Could and Later.
   - Each record shows its plumber save time and the current device's most recent successful central synchronisation time.
   - Every write supplies the server revision last seen by that device.
   - A stale revision is reported as a conflict and does not overwrite the current server record.
+  - A user can compare the retained technician and central versions, then explicitly choose which one to keep.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
-- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client now implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation and safe stale-revision conflict reporting. Automated browser tests use a mocked shared service. Live Supabase record synchronisation and the full permission matrix remain unverified. There is no conflict-resolution screen yet. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
+- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. Automated browser tests use a mocked shared service. A live cross-origin Supabase record upload and download was verified manually on 21 August 2026. The full permission matrix remains unverified. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
 
 ### REQ-SEC-004: Public repository hygiene
 

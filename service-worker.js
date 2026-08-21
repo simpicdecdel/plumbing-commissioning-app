@@ -1,13 +1,13 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.0-sync4';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.1-conflict';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.0-sync4',
-  './vendor/dexie.min.js?v=0.4.0-sync4',
-  './vendor/remote-client.min.js?v=0.4.0-sync4',
-  './storage.js?v=0.4.0-sync4',
-  './sync.js?v=0.4.0-sync4',
-  './app.js?v=0.4.0-sync4',
+  './styles.css?v=0.4.1-conflict',
+  './vendor/dexie.min.js?v=0.4.1-conflict',
+  './vendor/remote-client.min.js?v=0.4.1-conflict',
+  './storage.js?v=0.4.1-conflict',
+  './sync.js?v=0.4.1-conflict',
+  './app.js?v=0.4.1-conflict',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',

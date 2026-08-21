@@ -36,7 +36,7 @@
   }
 
   function isConflict(error) {
-    return error?.code === '40001' || /revision conflict/i.test(error?.message || '');
+    return ['PT409', '40001'].includes(error?.code) || /revision conflict/i.test(error?.message || '');
   }
 
   async function performSync() {
@@ -137,6 +137,23 @@
       await refreshStatus(navigator.onLine ? 'pending' : 'offline');
       if (result.queued && navigator.onLine) await syncAfterCurrent();
       return result;
+    },
+    async resolveConflict(recordId, resolution) {
+      const current = context();
+      if (!current) throw new Error('Sign in before resolving a synchronisation conflict.');
+      if (resolution === 'use-central') {
+        const result = await store.resolveConflictWithServer(recordId, current.organisationId);
+        const nextStatus = await refreshStatus();
+        emit({ ...nextStatus, lastSuccessfulSyncAt: new Date().toISOString() }, { downloaded: result.deleted ? 0 : 1, removed: result.deleted ? 1 : 0, resolved: 1 });
+        return result;
+      }
+      if (resolution === 'keep-technician') {
+        await store.queueConflictTechnicianVersion(recordId, current.organisationId);
+        await refreshStatus(navigator.onLine ? 'pending' : 'offline');
+        if (navigator.onLine) await syncAfterCurrent();
+        return { queued: true };
+      }
+      throw new Error('Unknown conflict resolution choice.');
     },
     syncNow
   });

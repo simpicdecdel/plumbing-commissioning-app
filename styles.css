@@ -130,6 +130,12 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
 .auth-message { min-height: 1.5rem; margin: 1rem 0 0; color: var(--muted); }
 .auth-message.error { color: var(--danger); }
 #accountPanel p { margin: .35rem 0; }
+.conflict-dialog { width: min(48rem, calc(100% - 2rem)); }
+.conflict-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.conflict-version { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; background: #f8faf9; }
+.conflict-version h3 { margin: .25rem 0 .5rem; }
+.conflict-version .record-meta { white-space: pre-line; }
+.conflict-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
 
 @media (max-width: 720px) {
   .app-header { align-items: flex-start; }
@@ -147,6 +153,9 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
   .form-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
   .auth-actions { align-items: stretch; flex-direction: column; }
   .auth-actions .button { width: 100%; }
+  .conflict-comparison { grid-template-columns: 1fr; }
+  .conflict-actions { align-items: stretch; flex-direction: column; }
+  .conflict-actions .button { width: 100%; }
 }
 
 @media print {

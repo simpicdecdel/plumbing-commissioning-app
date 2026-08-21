@@ -18,6 +18,11 @@ const authMessage = document.querySelector('#authMessage');
 const signInForm = document.querySelector('#signInForm');
 const setPasswordForm = document.querySelector('#setPasswordForm');
 const accountPanel = document.querySelector('#accountPanel');
+const conflictDialog = document.querySelector('#conflictDialog');
+const conflictMessage = document.querySelector('#conflictMessage');
+const useCentralButton = document.querySelector('#useCentralButton');
+const keepTechnicianButton = document.querySelector('#keepTechnicianButton');
+let conflictRecordId = null;
 
 function showAuthMessage(message = '', isError = false) {
   authMessage.textContent = message;
@@ -194,6 +199,68 @@ function describeSyncEntry(entry) {
   return { status: 'Synced', time: entry.lastSyncedAt ? formatDateTime(entry.lastSyncedAt) : 'Not synced' };
 }
 
+function conflictVersionDetails(record, savedAt) {
+  if (!record) return 'This version could not be loaded.';
+  const parts = [
+    record.plant?.name || 'Plant not set',
+    record.job?.address || 'Address not set',
+    record.job?.technician ? `Technician: ${record.job.technician}` : 'Technician not recorded',
+    `Saved: ${formatDateTime(savedAt || record.updatedAt)}`,
+    `${record.units?.length || 0} unit${record.units?.length === 1 ? '' : 's'}`,
+    `Outcome: ${record.status === 'Draft' ? 'Draft' : record.results?.outcome || record.status || 'Not recorded'}`
+  ];
+  return parts.join('\n');
+}
+
+async function openConflict(record) {
+  const entry = await store.getSyncEntry(record.id);
+  if (!entry || entry.state !== 'conflict') {
+    storageNotice.textContent = 'This record no longer has a conflict to resolve.';
+    await renderRecords();
+    return;
+  }
+  conflictRecordId = record.id;
+  const centralRecord = entry.serverRecord?.payload;
+  document.querySelector('#conflictLocalSite').textContent = record.job?.siteName || 'Unnamed site';
+  document.querySelector('#conflictLocalDetails').textContent = conflictVersionDetails(record, record.updatedAt);
+  document.querySelector('#conflictCentralSite').textContent = entry.serverRecord?.deleted_at
+    ? 'Deleted centrally'
+    : centralRecord?.job?.siteName || 'Central version unavailable';
+  document.querySelector('#conflictCentralDetails').textContent = entry.serverRecord?.deleted_at
+    ? `Deleted: ${formatDateTime(entry.serverRecord.deleted_at)}`
+    : conflictVersionDetails(centralRecord, entry.serverRecord?.updated_at);
+  useCentralButton.disabled = !entry.serverRecord;
+  keepTechnicianButton.disabled = !entry.serverRecord || Boolean(entry.serverRecord.deleted_at);
+  conflictMessage.textContent = entry.serverRecord ? '' : 'Sync again to load the current central version before resolving.';
+  conflictMessage.classList.toggle('error', !entry.serverRecord);
+  conflictDialog.showModal();
+}
+
+async function resolveOpenConflict(resolution) {
+  if (!conflictRecordId) return;
+  const useCentral = resolution === 'use-central';
+  const confirmed = confirm(useCentral
+    ? 'Use the central version? The technician edit on this device will be replaced.'
+    : 'Keep the technician version? This will overwrite the current central record for other users.');
+  if (!confirmed) return;
+  useCentralButton.disabled = true;
+  keepTechnicianButton.disabled = true;
+  conflictMessage.classList.remove('error');
+  conflictMessage.textContent = useCentral ? 'Applying central version…' : 'Saving technician version centrally…';
+  try {
+    await sync.resolveConflict(conflictRecordId, resolution);
+    conflictDialog.close();
+    conflictRecordId = null;
+    storageNotice.textContent = useCentral ? 'Conflict resolved using the central version.' : 'Conflict resolved using the technician version.';
+    await renderRecords();
+  } catch (error) {
+    conflictMessage.textContent = error.message;
+    conflictMessage.classList.add('error');
+    useCentralButton.disabled = false;
+    keepTechnicianButton.disabled = false;
+  }
+}
+
 async function renderRecords() {
   const query = searchInput.value.toLowerCase().trim();
   const records = (await store.listRecords()).filter((record) => {
@@ -230,6 +297,7 @@ async function renderRecords() {
         <p class="record-meta">${escapeHtml(syncDetails.time)}</p>
       </div>
       <div class="record-actions">
+        ${syncEntry?.state === 'conflict' ? `<button class="button button-primary" type="button" data-action="resolve" data-id="${escapeHtml(record.id)}">Resolve</button>` : ''}
         <button class="button button-secondary" type="button" data-action="edit" data-id="${escapeHtml(record.id)}">Open</button>
         <button class="button button-secondary" type="button" data-action="print" data-id="${escapeHtml(record.id)}">Print</button>
         <button class="button button-danger" type="button" data-action="delete" data-id="${escapeHtml(record.id)}">Delete</button>
@@ -305,6 +373,7 @@ form.addEventListener('submit', async (event) => {
 recordList.addEventListener('click', async (event) => {
   const button = event.target.closest('button[data-action]'); if (!button) return;
   const record = await store.getRecord(button.dataset.id); if (!record) return;
+  if (button.dataset.action === 'resolve') { await openConflict(record); return; }
   if (button.dataset.action === 'edit' || button.dataset.action === 'print') {
     populateForm(record); await showView('form');
     if (button.dataset.action === 'print') setTimeout(() => window.print(), 100);
@@ -378,6 +447,10 @@ window.addEventListener('commissioning-sync-updated', async (event) => {
   if (event.detail.changes?.downloaded || event.detail.changes?.removed) await renderRecords();
 });
 document.querySelector('#syncButton').addEventListener('click', () => sync?.syncNow());
+document.querySelector('#closeConflictButton').addEventListener('click', () => conflictDialog.close());
+conflictDialog.addEventListener('click', (event) => { if (event.target === conflictDialog) conflictDialog.close(); });
+useCentralButton.addEventListener('click', () => resolveOpenConflict('use-central'));
+keepTechnicianButton.addEventListener('click', () => resolveOpenConflict('keep-technician'));
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault(); installPrompt = event; document.querySelector('#installButton').hidden = false;
 });

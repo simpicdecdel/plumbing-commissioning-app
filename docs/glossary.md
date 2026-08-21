@@ -70,7 +70,7 @@ The authoritative location containing the current accepted requirements. For thi
 
 ## Synchronisation
 
-The process that reconciles local IndexedDB records with Supabase. Signed-in changes are queued locally, uploaded when connectivity is available and downloaded to other signed-in devices. Stale edits are retained and reported as conflicts, but the conflict-resolution screen is not yet implemented.
+The process that reconciles local IndexedDB records with Supabase. Signed-in changes are queued locally, uploaded when connectivity is available and downloaded to other signed-in devices. Stale edits are retained and can be resolved by explicitly choosing the technician or central version.
 
 ## Row-level security
 

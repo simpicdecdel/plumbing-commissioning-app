@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the current release without horizontal overflow', async ({ page }) => {
   await expect(page).toHaveTitle('Plumbing Commissioning');
-  await expect(page.getByText('v0.4.0', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.4.1', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Commissioning records' })).toBeVisible();
 
   const layout = await page.evaluate(() => ({
@@ -40,11 +40,11 @@ test('serves a valid installable shell', async ({ request }) => {
   const workerResponse = await request.get('/service-worker.js');
   expect(workerResponse.ok()).toBe(true);
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain("plumbing-commissioning-v0.4.0-sync4");
-  expect(workerSource).toContain("'./storage.js?v=0.4.0-sync4'");
-  expect(workerSource).toContain("'./sync.js?v=0.4.0-sync4'");
-  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.0-sync4'");
-  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.0-sync4'");
+  expect(workerSource).toContain("plumbing-commissioning-v0.4.1-conflict");
+  expect(workerSource).toContain("'./storage.js?v=0.4.1-conflict'");
+  expect(workerSource).toContain("'./sync.js?v=0.4.1-conflict'");
+  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.1-conflict'");
+  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.1-conflict'");
   expect(workerSource).not.toMatch(/APP_SHELL[\s\S]*config\.js[\s\S]*\];/);
   expect(workerSource).toContain("pathname.endsWith('/config.js')");
 });
