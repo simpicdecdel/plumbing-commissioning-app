@@ -1,13 +1,13 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.2-password-reset';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.3-recovery-callback';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.2-password-reset',
-  './vendor/dexie.min.js?v=0.4.2-password-reset',
-  './vendor/remote-client.min.js?v=0.4.2-password-reset',
-  './storage.js?v=0.4.2-password-reset',
-  './sync.js?v=0.4.2-password-reset',
-  './app.js?v=0.4.2-password-reset',
+  './styles.css?v=0.4.3-recovery-callback',
+  './vendor/dexie.min.js?v=0.4.3-recovery-callback',
+  './vendor/remote-client.min.js?v=0.4.3-recovery-callback',
+  './storage.js?v=0.4.3-recovery-callback',
+  './sync.js?v=0.4.3-recovery-callback',
+  './app.js?v=0.4.3-recovery-callback',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',
