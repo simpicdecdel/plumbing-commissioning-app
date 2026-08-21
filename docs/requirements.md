@@ -219,8 +219,8 @@ Priorities use Must, Should, Could and Later.
 - Requirement: An invited organisation member must be able to establish and end an authenticated Supabase session.
 - Acceptance criteria:
   - A user can sign in with email and password.
-  - A user can request a password setup email.
-  - A password recovery link opens the set-password flow.
+  - A user can request a password reset email without revealing whether an account exists.
+  - A password recovery link opens the reset-password flow.
   - A user can sign out.
   - The browser persists and refreshes the session using the Supabase client.
 - Implementation state: The client and UI are implemented. A live administrator sign-in was verified manually on 20 August 2026. Browser tests use a mocked remote client, so live authentication is not yet covered by the automated repository suite.

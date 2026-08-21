@@ -87,7 +87,7 @@ This log records material product decisions and their reasons. Changing an accep
 
 ### Implementation status at 21 August 2026
 
-- Implemented: authentication client, sign-in, password setup and recovery, sign-out, membership display, public production configuration, deployed initial database migration, static security tests, local-first synchronisation, offline queueing, cross-device download, safe conflict reporting and explicit central-or-technician conflict resolution.
+- Implemented: authentication client, sign-in, password reset and recovery, sign-out, membership display, public production configuration, deployed initial database migration, static security tests, local-first synchronisation, offline queueing, cross-device download, safe conflict reporting and explicit central-or-technician conflict resolution.
 - Not implemented: confirmed local-to-remote migration, role enforcement for local-only delete or backup restore, and server-side restore UI.
 - Manually verified on 20 August 2026: production tables, RLS enablement, policies, security-definer function grants, anonymous read denial, administrator membership and live administrator sign-in.
 - Manually verified on 21 August 2026: a live Supabase record created in one browser origin downloaded into a fresh origin.

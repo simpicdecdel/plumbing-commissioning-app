@@ -78,7 +78,7 @@ if (config.enabled) {
       if (error) throw error;
       return resolveState(data.session, false);
     },
-    async sendPasswordSetupEmail(email) {
+    async sendPasswordResetEmail(email) {
       const redirectTo = `${location.origin}${location.pathname}`;
       const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;

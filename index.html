@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.1-conflict">
+  <link rel="stylesheet" href="styles.css?v=0.4.2-password-reset">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,7 +17,7 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.4.1">v0.4.1</span>
+        <span class="app-version" aria-label="Application version 0.4.2">v0.4.2</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
       <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
@@ -169,14 +169,14 @@
       <label>Password <input id="authPassword" name="password" type="password" autocomplete="current-password" required></label>
       <div class="auth-actions">
         <button class="button button-primary" type="submit">Sign in</button>
-        <button id="passwordSetupButton" class="button button-secondary" type="button">Email password setup link</button>
+        <button id="passwordResetButton" class="button button-secondary" type="button">Forgot password?</button>
       </div>
     </form>
     <form id="setPasswordForm" hidden>
-      <p>Choose a password to finish setting up your account.</p>
+      <p>Choose a new password for your account.</p>
       <label>New password <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required></label>
       <label>Confirm password <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label>
-      <button class="button button-primary" type="submit">Set password</button>
+      <button class="button button-primary" type="submit">Reset password</button>
     </form>
     <section id="accountPanel" hidden>
       <p id="accountEmail"></p>
@@ -245,11 +245,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js?v=0.4.1-conflict" defer></script>
-  <script src="storage.js?v=0.4.1-conflict" defer></script>
-  <script src="config.js?v=0.4.1-conflict" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.1-conflict" defer></script>
-  <script src="sync.js?v=0.4.1-conflict" defer></script>
-  <script src="app.js?v=0.4.1-conflict" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.2-password-reset" defer></script>
+  <script src="storage.js?v=0.4.2-password-reset" defer></script>
+  <script src="config.js?v=0.4.2-password-reset" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.2-password-reset" defer></script>
+  <script src="sync.js?v=0.4.2-password-reset" defer></script>
+  <script src="app.js?v=0.4.2-password-reset" defer></script>
 </body>
 </html>
