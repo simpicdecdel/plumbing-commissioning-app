@@ -36,7 +36,7 @@ function renderAuthState(authState = {}) {
   signInForm.hidden = signedIn || recovery;
   setPasswordForm.hidden = !recovery;
   accountPanel.hidden = !signedIn || recovery;
-  document.querySelector('#authTitle').textContent = recovery ? 'Set password' : signedIn ? 'Account' : 'Sign in';
+  document.querySelector('#authTitle').textContent = recovery ? 'Reset password' : signedIn ? 'Account' : 'Sign in';
   document.querySelector('#accountEmail').textContent = authState.user?.email || '';
   document.querySelector('#accountRole').textContent = authState.membership
     ? `${authState.membership.organisationName || 'Organisation'} · ${authState.membership.role}`
@@ -478,13 +478,18 @@ signInForm.addEventListener('submit', async (event) => {
   } catch (error) { showAuthMessage(error.message, true); }
 });
 
-document.querySelector('#passwordSetupButton').addEventListener('click', async () => {
+document.querySelector('#passwordResetButton').addEventListener('click', async () => {
   const email = document.querySelector('#authEmail').value.trim();
-  if (!email || !document.querySelector('#authEmail').reportValidity()) return;
-  showAuthMessage('Requesting a password setup email…');
+  if (!email) {
+    showAuthMessage('Enter your email address, then select Forgot password.', true);
+    document.querySelector('#authEmail').focus();
+    return;
+  }
+  if (!document.querySelector('#authEmail').reportValidity()) return;
+  showAuthMessage('Requesting a password reset email…');
   try {
-    await remote.sendPasswordSetupEmail(email);
-    showAuthMessage('Password setup email sent. Open it on this device to continue.');
+    await remote.sendPasswordResetEmail(email);
+    showAuthMessage('If an account exists for this email, a password reset link has been sent.');
   } catch (error) { showAuthMessage(error.message, true); }
 });
 
@@ -495,11 +500,11 @@ setPasswordForm.addEventListener('submit', async (event) => {
     showAuthMessage('The passwords do not match.', true);
     return;
   }
-  showAuthMessage('Setting password…');
+  showAuthMessage('Resetting password…');
   try {
     await remote.updatePassword(password);
     setPasswordForm.reset();
-    showAuthMessage('Password set successfully.');
+    showAuthMessage('Password reset successfully.');
   } catch (error) { showAuthMessage(error.message, true); }
 });
 

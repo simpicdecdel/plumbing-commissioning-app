@@ -7,7 +7,7 @@ This document covers the authentication, database and initial local-first synchr
 Implemented in this repository:
 
 - Supabase email/password sign-in and sign-out.
-- Password setup and recovery flow.
+- Password reset and account recovery flow.
 - Persisted and refreshed browser sessions.
 - Organisation membership and role display.
 - The initial database migration and static security tests.

@@ -24,7 +24,7 @@ The current PWA can:
 - Search records and unit identifiers stored on the device.
 - Print a record, export all records as a versioned JSON backup and restore a valid backup.
 - Install as a PWA and reload its application shell without a network connection after the first successful load.
-- Sign invited Supabase users in and out, request a password setup email, complete password recovery and show their organisation role.
+- Sign invited Supabase users in and out, request a password reset email, complete password recovery and show their organisation role.
 - Queue signed-in record changes locally, synchronise them with the user's organisation and download changes made on another device.
 - Preserve an offline edit when its server revision is stale and report the resulting conflict instead of overwriting the newer server record.
 - Resolve a revision conflict by reviewing both versions and deliberately choosing the central or technician version.
@@ -121,7 +121,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.4.1 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication, cross-device synchronisation, offline queueing, revision conflicts and both conflict-resolution choices. Authentication and synchronisation browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
+The browser suite checks the v0.4.2 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets and service-worker control, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication and password recovery, cross-device synchronisation, offline queueing, revision conflicts and both conflict-resolution choices. Authentication and synchronisation browser tests use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 
