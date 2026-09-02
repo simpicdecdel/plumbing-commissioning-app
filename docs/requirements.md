@@ -370,7 +370,7 @@ Priorities use Must, Should, Could and Later.
   - Both roles can view, create and edit active records for their organisation.
   - Only Administrators can delete, restore or administer access.
   - Anonymous and cross-organisation access is denied by database row-level security.
-- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. The full role and cross-organisation permission matrix remains to be integration-tested. Local record access, delete and backup restore are not gated by authentication or role.
+- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. An opt-in live suite covers technician, administrator, revoked-member and cross-organisation behaviour, but it requires a successful run against the dedicated Supabase test project for the current release. Local record access, delete and backup restore are not gated by authentication or role.
 
 ### REQ-SEC-003: Central storage and synchronisation
 
@@ -386,7 +386,7 @@ Priorities use Must, Should, Could and Later.
   - A user can compare the retained technician and central versions, then explicitly choose which one to keep.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
-- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. Automated browser tests use a mocked shared service. A live cross-origin Supabase record upload and download was verified manually on 21 August 2026. The full permission matrix remains unverified. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
+- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. The normal browser tests use a mocked shared service; the opt-in live API and browser suites cover the real shared service, including the full permission matrix. A live cross-origin Supabase record upload and download was verified manually on 21 August 2026. A successful automated live-suite run is still required against the dedicated test project for the current release. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
 
 ### REQ-SEC-004: Public repository hygiene
 

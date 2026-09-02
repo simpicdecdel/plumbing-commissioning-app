@@ -24,7 +24,7 @@ Not yet implemented or verified:
 
 - Role enforcement for local-only delete or backup restore.
 - User-confirmed upload of records that existed locally before synchronisation was introduced.
-- Automated live tests for the complete technician, administrator, revoked-user and cross-organisation permission matrix.
+- Successful execution of the automated live permission matrix against the dedicated Supabase test project for the current release. The opt-in suite covers technician, administrator, revoked-member and cross-organisation behaviour, but requires test-project credentials to run.
 - A live two-device verification of offline retry, conflict resolution and soft deletion. Cross-origin upload and download were verified manually on 21 August 2026.
 
 Signing in does not restrict access to records held in the browser on that device. Existing local records are deliberately not uploaded merely by signing in.
@@ -117,8 +117,8 @@ The opt-in live integration suite uses the Supabase Auth Admin API from Node, ne
 - An administrator and technician in one temporary organisation.
 - An outsider in a second temporary organisation for isolation checks.
 
-The suite deletes test records first, followed by memberships, organisations and Auth users. This order satisfies the database foreign keys. `pnpm test:live:cleanup -- --confirm` removes tagged fixtures left by an interrupted run and stops if any tagged user belongs to a non-test organisation.
+The suite also removes a technician's membership while that user's existing session remains active, then proves that row reads return no organisation data and revision-checked writes are denied immediately. It deletes test records first, followed by remaining memberships, organisations and Auth users. This order satisfies the database foreign keys. `pnpm test:live:cleanup -- --confirm` removes tagged fixtures left by an interrupted run and stops if any tagged user belongs to a non-test organisation.
 
-Do not run these tests against the eventual production project. Configure a separate Supabase project or branch and store the URL, publishable key and secret key only in `.env.live-tests` or GitHub environment secrets.
+Do not run these tests against the production project. The harness reads the public production URL from `config.js` and refuses to run or clean up when the configured live-test URL matches it. Configure a separate Supabase project or branch and store the URL, publishable key and secret key only in `.env.live-tests` or GitHub environment secrets.
 
 Do not upload existing phone records until the live project has passed these tests and a fresh JSON backup has been exported.

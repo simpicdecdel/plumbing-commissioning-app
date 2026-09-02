@@ -29,7 +29,17 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
       const membership = await technician.client.from('organisation_members').select('organisation_id,role').eq('user_id', technician.user.id).single();
       assert.equal(membership.error, null);
       assert.deepEqual(membership.data, { organisation_id: primaryOrganisationId, role: 'technician' });
-      const outsiderRead = await outsider.client.from('commissioning_records').select('id').eq('organisation_id', primaryOrganisationId);
+
+      const created = await administrator.client.rpc('save_commissioning_record', {
+        record_id: recordId, target_organisation_id: primaryOrganisationId, record_payload: initialPayload, expected_revision: 0
+      });
+      assert.equal(created.error, null);
+      assert.equal(firstRow(created.data).revision, 1);
+
+      const outsiderRead = await outsider.client.from('commissioning_records')
+        .select('id')
+        .eq('organisation_id', primaryOrganisationId)
+        .eq('id', recordId);
       assert.equal(outsiderRead.error, null);
       assert.deepEqual(outsiderRead.data, []);
       const outsiderWrite = await outsider.client.rpc('save_commissioning_record', {
@@ -39,12 +49,16 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
     });
 
     let currentRevision;
-    await t.test('members save records and stale revisions conflict', async () => {
-      const created = await administrator.client.rpc('save_commissioning_record', {
-        record_id: recordId, target_organisation_id: primaryOrganisationId, record_payload: initialPayload, expected_revision: 0
+    await t.test('members create and update records while stale revisions conflict', async () => {
+      const technicianRecordId = randomUUID();
+      const technicianCreated = await technician.client.rpc('save_commissioning_record', {
+        record_id: technicianRecordId,
+        target_organisation_id: primaryOrganisationId,
+        record_payload: { ...initialPayload, id: technicianRecordId },
+        expected_revision: 0
       });
-      assert.equal(created.error, null);
-      assert.equal(firstRow(created.data).revision, 1);
+      assert.equal(technicianCreated.error, null);
+      assert.equal(firstRow(technicianCreated.data).revision, 1);
 
       const technicianPayload = { ...initialPayload, job: { siteName: `Technician update ${fixture.runId}` }, updatedAt: new Date().toISOString() };
       const updated = await technician.client.rpc('save_commissioning_record', {
@@ -83,6 +97,34 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
       assert.equal(restored.error, null);
       assert.equal(firstRow(restored.data).revision, deletedRevision + 1);
       assert.equal(firstRow(restored.data).deleted_at, null);
+    });
+
+    await t.test('revoked membership removes access from an existing session', async () => {
+      const revoked = await fixture.admin.from('organisation_members')
+        .delete()
+        .eq('organisation_id', primaryOrganisationId)
+        .eq('user_id', technician.user.id);
+      assert.equal(revoked.error, null);
+
+      const membershipAfterRevocation = await technician.client.from('organisation_members')
+        .select('organisation_id,role')
+        .eq('user_id', technician.user.id);
+      assert.equal(membershipAfterRevocation.error, null);
+      assert.deepEqual(membershipAfterRevocation.data, []);
+
+      const recordsAfterRevocation = await technician.client.from('commissioning_records')
+        .select('id')
+        .eq('organisation_id', primaryOrganisationId);
+      assert.equal(recordsAfterRevocation.error, null);
+      assert.deepEqual(recordsAfterRevocation.data, []);
+
+      const writeAfterRevocation = await technician.client.rpc('save_commissioning_record', {
+        record_id: randomUUID(),
+        target_organisation_id: primaryOrganisationId,
+        record_payload: initialPayload,
+        expected_revision: 0
+      });
+      assert.equal(writeAfterRevocation.error?.code, '42501');
     });
   } finally {
     await cleanupLiveTestFixture(fixture);
