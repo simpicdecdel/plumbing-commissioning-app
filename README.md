@@ -127,7 +127,7 @@ Before a field release, repeat the critical flows on at least one physical iPhon
 
 ## Live Supabase integration testing
 
-The normal test suite never requires privileged credentials and uses a mocked shared service. The opt-in live suite creates a unique administrator, technician and isolated outsider in an approved Supabase test project. It verifies real authentication, organisation isolation, revision conflicts, administrator-only deletion and restore, cross-browser synchronisation and the conflict-resolution UI. Every run deletes its records, memberships, organisations and Auth users in cleanup.
+The normal test suite never requires privileged credentials and uses a mocked shared service. The opt-in live suite creates a unique administrator, technician and isolated outsider in an approved Supabase test project. It verifies real authentication, organisation isolation, revision conflicts, administrator-only deletion and restore, immediate access removal after membership revocation, cross-browser synchronisation and the conflict-resolution UI. Every run deletes its records, memberships, organisations and Auth users in cleanup. The harness refuses to run when its configured URL matches the production project in `config.js`.
 
 Copy `.env.live-tests.example` to `.env.live-tests` and supply values from a dedicated test project. Use a Supabase secret key only in this server-side test environment. Never put it in `config.js`, a browser bundle, a commit or a test report.
 
@@ -160,7 +160,7 @@ Account UI in app.js
       -> Supabase Authentication and organisation membership lookup
 ```
 
-The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The full technician, administrator and cross-organisation permission matrix has not been integration-tested. The synchronisation workflow has automated coverage against a mocked shared service, but its live Supabase record operations have not yet been verified. Authentication does not gate local record access or backup restore.
+The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The opt-in live suite covers the technician, administrator, revoked-member and cross-organisation permission matrix, but it still requires a successful run against the dedicated Supabase test project for the current release. The normal synchronisation suite uses a mocked shared service. Authentication does not gate local record access or backup restore.
 
 The synchronisation boundary is:
 

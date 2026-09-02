@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 
@@ -9,6 +10,8 @@ export const TEST_PURPOSE = 'plumbing-commissioning-live-test';
 const TEST_EMAIL_PREFIX = 'plumbing-live-';
 const TEST_ORGANISATION_PREFIX = 'Automated live test ';
 const LIVE_REQUEST_TIMEOUT_MS = 15_000;
+const productionConfig = readFileSync(new URL('../../config.js', import.meta.url), 'utf8');
+const productionSupabaseUrl = productionConfig.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i)?.[0];
 
 function requiredEnvironment(name) {
   const value = process.env[name]?.trim();
@@ -24,6 +27,8 @@ export function getLiveTestConfig() {
   const publishableKey = requiredEnvironment('PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY');
   const secretKey = requiredEnvironment('PLUMBING_TEST_SUPABASE_SECRET_KEY');
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) throw new Error('PLUMBING_TEST_SUPABASE_URL must be an HTTPS Supabase project URL.');
+  if (!productionSupabaseUrl) throw new Error('Could not determine the production Supabase URL from config.js. Live tests stopped without connecting.');
+  if (supabaseUrl.toLowerCase() === productionSupabaseUrl.toLowerCase()) throw new Error('Live tests cannot use the production Supabase project configured in config.js. Configure a separate disposable test project.');
   if (!publishableKey.startsWith('sb_publishable_') && publishableKey.split('.').length !== 3) throw new Error('The live-test publishable key format is invalid.');
   if (!secretKey.startsWith('sb_secret_') && secretKey.split('.').length !== 3) throw new Error('The live-test secret key format is invalid.');
   return { supabaseUrl, publishableKey, secretKey };
