@@ -14,18 +14,13 @@ test.afterAll(async () => {
 async function createLiveContext(browser) {
   const context = await browser.newContext();
   contexts.push(context);
-  await context.route('**/config.js*', (route) => route.fulfill({
-    contentType: 'text/javascript',
-    body: `window.PLUMBING_APP_CONFIG = Object.freeze(${JSON.stringify({
-      supabaseUrl: fixture.config.supabaseUrl,
-      supabasePublishableKey: fixture.config.publishableKey
-    })});`
-  }));
   return context;
 }
 
 async function signIn(page, userKey) {
   const user = fixture.users[userKey];
+  await expect.poll(() => page.evaluate(() => window.PLUMBING_APP_CONFIG?.supabaseUrl))
+    .toBe(fixture.config.supabaseUrl);
   await page.getByRole('button', { name: 'Sign in' }).click();
   const form = page.locator('#signInForm');
   await form.getByLabel('Email').fill(user.email);
@@ -106,4 +101,66 @@ test('real users synchronise and resolve a stale edit through the app', async ({
   await expect(conflictDialog).toBeHidden();
   await expect(administratorPage.locator('.record-card').filter({ hasText: centralEdit })).toBeVisible();
   await expect(administratorPage.locator('#syncStatus')).toContainText('Synced');
+});
+
+test('offline edits upload on reconnect and after reopening the page', async ({ browser }) => {
+  const initialSite = `Live offline ${fixture.runId}`;
+  const reconnectEdit = `Offline reconnect ${fixture.runId}`;
+  const reopenEdit = `Offline reopen ${fixture.runId}`;
+  const context = await createLiveContext(browser);
+  let page = await context.newPage();
+  await page.goto('/');
+  await signIn(page, 'administrator');
+  await completeRecord(page, initialSite);
+
+  await page.locator('.record-card').filter({ hasText: initialSite }).getByRole('button', { name: 'Open' }).click();
+  const localRecordId = await page.locator('#recordId').inputValue();
+  async function centralVersions() {
+    const { data, error } = await fixture.admin.from('commissioning_records')
+      .select('payload,revision')
+      .eq('organisation_id', fixture.organisationIds[0])
+      .eq('payload->>id', localRecordId);
+    assert.equal(error, null);
+    return data.map((record) => ({ siteName: record.payload.job.siteName, revision: record.revision }));
+  }
+
+  async function saveOfflineEdit(siteName) {
+    await context.setOffline(true);
+    await expect(page.locator('#networkStatus')).toHaveText('Offline ready');
+    await replaceSiteName(page, siteName);
+    await page.getByRole('button', { name: 'Complete record' }).click();
+    await expect(page.locator('#formView')).toBeHidden();
+    await expect(page.locator('.record-card').filter({ hasText: siteName })).toBeVisible();
+    await expect(page.locator('#syncStatus')).toHaveText('1 pending');
+  }
+
+  await saveOfflineEdit(reconnectEdit);
+  assert.deepEqual(await centralVersions(), [{ siteName: initialSite, revision: 1 }]);
+  await context.setOffline(false);
+  await expect(page.locator('#syncStatus')).toContainText('Synced', { timeout: 15_000 });
+  await expect.poll(centralVersions, { timeout: 15_000 }).toEqual([{ siteName: reconnectEdit, revision: 2 }]);
+
+  await page.locator('.record-card').filter({ hasText: reconnectEdit }).getByRole('button', { name: 'Open' }).click();
+  await saveOfflineEdit(reopenEdit);
+  assert.deepEqual(await centralVersions(), [{ siteName: reconnectEdit, revision: 2 }]);
+
+  // Close the page with a pending edit, then reconnect before opening it again.
+  // Only the browser context's persisted session and IndexedDB outbox survive.
+  await page.close();
+  await context.setOffline(false);
+  page = await context.newPage();
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => window.PLUMBING_APP_CONFIG?.supabaseUrl))
+    .toBe(fixture.config.supabaseUrl);
+  await expect(page.locator('.record-card').filter({ hasText: reopenEdit })).toBeVisible();
+  await expect(page.locator('#syncStatus')).toContainText('Synced', { timeout: 15_000 });
+  await expect.poll(centralVersions, { timeout: 15_000 }).toEqual([{ siteName: reopenEdit, revision: 3 }]);
+
+  const observerContext = await createLiveContext(browser);
+  const observerPage = await observerContext.newPage();
+  await observerPage.goto('/');
+  await signIn(observerPage, 'technician');
+  await expect(observerPage.locator('.record-card').filter({ hasText: reopenEdit })).toHaveCount(1);
+  await expect(observerPage.locator('.record-card').filter({ hasText: initialSite })).toHaveCount(0);
+  await expect(observerPage.locator('.record-card').filter({ hasText: reconnectEdit })).toHaveCount(0);
 });
