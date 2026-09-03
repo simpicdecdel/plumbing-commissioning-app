@@ -223,7 +223,7 @@ Priorities use Must, Should, Could and Later.
   - A password recovery link opens the reset-password flow.
   - A user can sign out.
   - The browser persists and refreshes the session using the Supabase client.
-- Implementation state: The client and UI are implemented. A live administrator sign-in was verified manually on 20 August 2026. Browser tests use a mocked remote client, so live authentication is not yet covered by the automated repository suite.
+- Implementation state: The client and UI are implemented. A live administrator sign-in was verified manually in production on 20 August 2026. On 3 September 2026, the opt-in live suite verified real administrator and technician authentication against the separate test project. The normal browser suite continues to use a mocked remote client.
 
 ### REQ-F-017: Show organisation membership
 
@@ -370,7 +370,7 @@ Priorities use Must, Should, Could and Later.
   - Both roles can view, create and edit active records for their organisation.
   - Only Administrators can delete, restore or administer access.
   - Anonymous and cross-organisation access is denied by database row-level security.
-- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. An opt-in live suite covers technician, administrator, revoked-member and cross-organisation behaviour, but it requires a successful run against the dedicated Supabase test project for the current release. Local record access, delete and backup restore are not gated by authentication or role.
+- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. On 3 September 2026, the opt-in live suite passed against the separate test project for technician and administrator permissions, cross-organisation isolation and immediate access removal after membership revocation. This test-project result does not verify production configuration. Local record access, delete and backup restore are not gated by authentication or role.
 
 ### REQ-SEC-003: Central storage and synchronisation
 
@@ -386,7 +386,7 @@ Priorities use Must, Should, Could and Later.
   - A user can compare the retained technician and central versions, then explicitly choose which one to keep.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
-- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. The normal browser tests use a mocked shared service; the opt-in live API and browser suites cover the real shared service, including the full permission matrix. A live cross-origin Supabase record upload and download was verified manually on 21 August 2026. A successful automated live-suite run is still required against the dedicated test project for the current release. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
+- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. The normal browser tests use a mocked shared service. On 3 September 2026, five live API tests and one live iPhone/WebKit test passed against the separate test project, covering the permission matrix, revision conflicts, soft deletion and restore, cross-browser synchronisation and conflict resolution. Live offline retry remains unverified. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
 
 ### REQ-SEC-004: Public repository hygiene
 

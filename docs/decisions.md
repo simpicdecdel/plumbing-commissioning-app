@@ -91,7 +91,7 @@ This log records material product decisions and their reasons. Changing an accep
 - Not implemented: confirmed local-to-remote migration, role enforcement for local-only delete or backup restore, and server-side restore UI.
 - Manually verified on 20 August 2026: production tables, RLS enablement, policies, security-definer function grants, anonymous read denial, administrator membership and live administrator sign-in.
 - Manually verified on 21 August 2026: a live Supabase record created in one browser origin downloaded into a fresh origin.
-- Automated live coverage exists for conflict resolution, soft deletion and restore, and the technician, administrator, revoked-member and cross-organisation permission matrix. Not verified for the current release: a successful run against the dedicated Supabase test project and live offline retry.
+- Verified on 3 September 2026 against the separate Supabase test project: five live API tests passed for authentication, role permissions, cross-organisation isolation, revision conflicts, administrator-only soft deletion and restore, and immediate access removal after membership revocation; one live iPhone/WebKit test passed for cross-browser synchronisation and conflict resolution. This does not verify production configuration. Live offline retry remains unverified.
 
 ## Decision entry template
 
