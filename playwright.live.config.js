@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { getLiveTestConfig } from './tests/live/live-test-fixture.mjs';
+
+const liveTestConfig = getLiveTestConfig();
 
 export default defineConfig({
   testDir: './tests/live-browser',
@@ -19,7 +22,12 @@ export default defineConfig({
   projects: [{ name: 'live-iphone-webkit', use: { ...devices['iPhone 13'] } }],
   webServer: {
     command: 'node scripts/serve.mjs',
-    env: { PORT: '4180' },
+    env: {
+      PORT: '4180',
+      PLUMBING_LIVE_TESTS: '1',
+      PLUMBING_TEST_SUPABASE_URL: liveTestConfig.supabaseUrl,
+      PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY: liveTestConfig.publishableKey
+    },
     url: 'http://127.0.0.1:4180',
     reuseExistingServer: false,
     timeout: 15_000

@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const fixture = await readFile(new URL('../live/live-test-fixture.mjs', import.meta.url), 'utf8');
 const permissions = await readFile(new URL('../live/supabase-permissions.test.mjs', import.meta.url), 'utf8');
+const liveBrowserConfig = await readFile(new URL('../../playwright.live.config.js', import.meta.url), 'utf8');
+const server = await readFile(new URL('../../scripts/serve.mjs', import.meta.url), 'utf8');
 const workflow = await readFile(new URL('../../.github/workflows/live-supabase.yml', import.meta.url), 'utf8');
 const gitignore = await readFile(new URL('../../.gitignore', import.meta.url), 'utf8');
 
@@ -35,4 +37,14 @@ test('live permission matrix includes active roles, isolation and immediate memb
   assert.match(permissions, /revoked membership removes access from an existing session/);
   assert.match(permissions, /organisation_members'\)\s*\.delete\(\)/);
   assert.match(permissions, /writeAfterRevocation\.error\?\.code, '42501'/);
+});
+
+test('live browser receives only its test project public configuration from the server', () => {
+  assert.match(liveBrowserConfig, /getLiveTestConfig\(\)/);
+  assert.match(liveBrowserConfig, /PLUMBING_TEST_SUPABASE_URL: liveTestConfig\.supabaseUrl/);
+  assert.match(liveBrowserConfig, /PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY: liveTestConfig\.publishableKey/);
+  assert.doesNotMatch(liveBrowserConfig, /secretKey|PLUMBING_TEST_SUPABASE_SECRET_KEY/);
+  assert.match(server, /liveTestBrowserConfig/);
+  assert.match(server, /PLUMBING_TEST_SUPABASE_PUBLISHABLE_KEY/);
+  assert.doesNotMatch(server, /PLUMBING_TEST_SUPABASE_SECRET_KEY/);
 });

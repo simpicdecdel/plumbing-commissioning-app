@@ -1,13 +1,15 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.3-recovery-callback';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.4-offline-config';
+const CONFIG_CACHE_NAME = `${CACHE_NAME}-public-config`;
+const CONFIG_URL = './config.js?v=0.4.4-offline-config';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.3-recovery-callback',
-  './vendor/dexie.min.js?v=0.4.3-recovery-callback',
-  './vendor/remote-client.min.js?v=0.4.3-recovery-callback',
-  './storage.js?v=0.4.3-recovery-callback',
-  './sync.js?v=0.4.3-recovery-callback',
-  './app.js?v=0.4.3-recovery-callback',
+  './styles.css?v=0.4.4-offline-config',
+  './vendor/dexie.min.js?v=0.4.4-offline-config',
+  './vendor/remote-client.min.js?v=0.4.4-offline-config',
+  './storage.js?v=0.4.4-offline-config',
+  './sync.js?v=0.4.4-offline-config',
+  './app.js?v=0.4.4-offline-config',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',
@@ -15,19 +17,35 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(Promise.all([
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
+    caches.open(CONFIG_CACHE_NAME).then((cache) => cache.add(CONFIG_URL))
+  ]).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
+  const currentCaches = new Set([CACHE_NAME, CONFIG_CACHE_NAME]);
   event.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    .then((keys) => Promise.all(keys.filter((key) => !currentCaches.has(key)).map((key) => caches.delete(key))))
     .then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (new URL(event.request.url).pathname.endsWith('/config.js')) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(caches.open(CONFIG_CACHE_NAME).then(async (cache) => {
+      try {
+        const response = await fetch(event.request);
+        if (!response.ok) throw new Error(`Configuration request failed with ${response.status}`);
+        await cache.put(event.request, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(event.request)) || new Response(
+          'window.PLUMBING_APP_CONFIG = Object.freeze({});\n',
+          { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } }
+        );
+      }
+    }));
     return;
   }
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)

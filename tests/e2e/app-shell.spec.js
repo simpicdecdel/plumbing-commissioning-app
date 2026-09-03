@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the current release without horizontal overflow', async ({ page }) => {
   await expect(page).toHaveTitle('Plumbing Commissioning');
-  await expect(page.getByText('v0.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.4.4', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Commissioning records' })).toBeVisible();
 
   const layout = await page.evaluate(() => ({
@@ -24,6 +24,9 @@ test('shows the current release without horizontal overflow', async ({ page }) =
 });
 
 test('serves a valid installable shell', async ({ request }) => {
+  const ignoredEnvironmentResponse = await request.get('/.env.live-tests');
+  expect(ignoredEnvironmentResponse.status()).toBe(403);
+
   const manifestResponse = await request.get('/manifest.webmanifest');
   expect(manifestResponse.ok()).toBe(true);
   const manifest = await manifestResponse.json();
@@ -40,16 +43,19 @@ test('serves a valid installable shell', async ({ request }) => {
   const workerResponse = await request.get('/service-worker.js');
   expect(workerResponse.ok()).toBe(true);
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain("plumbing-commissioning-v0.4.3-recovery-callback");
-  expect(workerSource).toContain("'./storage.js?v=0.4.3-recovery-callback'");
-  expect(workerSource).toContain("'./sync.js?v=0.4.3-recovery-callback'");
-  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.3-recovery-callback'");
-  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.3-recovery-callback'");
+  expect(workerSource).toContain("plumbing-commissioning-v0.4.4-offline-config");
+  expect(workerSource).toContain("'./storage.js?v=0.4.4-offline-config'");
+  expect(workerSource).toContain("'./sync.js?v=0.4.4-offline-config'");
+  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.4-offline-config'");
+  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.4-offline-config'");
   expect(workerSource).not.toMatch(/APP_SHELL[\s\S]*config\.js[\s\S]*\];/);
   expect(workerSource).toContain("pathname.endsWith('/config.js')");
+  expect(workerSource).toContain('CONFIG_CACHE_NAME');
+  expect(workerSource).toContain("cache.add(CONFIG_URL)");
+  expect(workerSource).toContain('cache.put(event.request, response.clone())');
 });
 
-test('registers a service worker that controls the application shell', async ({ page }) => {
+test('registers a service worker that controls the application shell and caches public config', async ({ page }) => {
   const registration = await page.evaluate(async () => {
     const readyRegistration = await navigator.serviceWorker.ready;
     return readyRegistration.active?.scriptURL;
@@ -59,4 +65,12 @@ test('registers a service worker that controls the application shell', async ({ 
   await page.reload();
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await expect(page.getByRole('heading', { name: 'Commissioning records' })).toBeVisible();
+
+  const cachedConfig = await page.evaluate(async () => {
+    const cacheName = (await caches.keys()).find((name) => name.endsWith('-public-config'));
+    if (!cacheName) return null;
+    const response = await (await caches.open(cacheName)).match('./config.js?v=0.4.4-offline-config');
+    return response?.text() || null;
+  });
+  expect(cachedConfig).toBe('window.PLUMBING_APP_CONFIG = Object.freeze({});\n');
 });
