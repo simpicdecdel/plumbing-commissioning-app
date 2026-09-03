@@ -24,7 +24,6 @@ Not yet implemented or verified:
 
 - Role enforcement for local-only delete or backup restore.
 - User-confirmed upload of records that existed locally before synchronisation was introduced.
-- Successful execution of the automated live permission matrix against the dedicated Supabase test project for the current release. The opt-in suite covers technician, administrator, revoked-member and cross-organisation behaviour, but requires test-project credentials to run.
 - A live two-device verification of offline retry, conflict resolution and soft deletion. Cross-origin upload and download were verified manually on 21 August 2026.
 
 Signing in does not restrict access to records held in the browser on that device. Existing local records are deliberately not uploaded merely by signing in.
@@ -96,17 +95,16 @@ pnpm build:remote
 - Deletion is reversible and keeps the record for later retention decisions.
 - Cross-organisation access is denied by membership checks and row-level security.
 
-## Verification required before live use
+## Verification status and remaining requirements before live use
 
-Static repository tests check that the migration contains the intended controls. Authentication and synchronisation UI tests use a mocked remote client. Manual production verification covered the deployed structure, grants, anonymous read denial, administrator membership and administrator sign-in, but it did not prove live record synchronisation or the complete permission matrix. Before treating this build as ready for live customer records, run integration tests against a separate Supabase test project covering:
+Static repository tests check that the migration contains the intended controls. The normal authentication and synchronisation UI tests use a mocked remote client. On 3 September 2026, the opt-in suite passed against the separate Supabase test project: five live API tests covered anonymous denial, technician and administrator permissions, cross-organisation isolation, revision conflicts, administrator-only soft deletion and restore, and immediate access removal after membership revocation; one live iPhone/WebKit test covered real authentication, cross-browser synchronisation and conflict resolution. Cleanup then found zero tagged users and zero tagged organisations remaining. This test-project result does not verify production configuration.
 
-- Anonymous access denial.
-- Technician and administrator permissions.
-- Cross-organisation isolation.
-- Concurrent edit conflicts.
-- Soft delete and restore.
-- Session expiry and revoked-user access.
-- Upload of existing local records without duplication.
+Before treating the build as ready for live customer records, verification is still required for:
+
+- Live offline retry.
+- Session expiry.
+- User-confirmed upload of existing local records without duplication.
+- Production configuration and the final release threshold in `docs/requirements.md`.
 
 Run the current static schema checks with `pnpm test:schema` and the full local suite with `pnpm test`.
 

@@ -160,7 +160,7 @@ Account UI in app.js
       -> Supabase Authentication and organisation membership lookup
 ```
 
-The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. The opt-in live suite covers the technician, administrator, revoked-member and cross-organisation permission matrix, but it still requires a successful run against the dedicated Supabase test project for the current release. The normal synchronisation suite uses a mocked shared service. Authentication does not gate local record access or backup restore.
+The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. On 3 September 2026, the opt-in live suite passed against the separate test project: five API tests covered the technician, administrator, revoked-member and cross-organisation permission matrix, and one iPhone/WebKit test covered real authentication, cross-browser synchronisation and conflict resolution. This test-project result does not verify production configuration. Authentication does not gate local record access or backup restore.
 
 The synchronisation boundary is:
 
