@@ -1,15 +1,15 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.4-offline-config';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.5-fresh-sync';
 const CONFIG_CACHE_NAME = `${CACHE_NAME}-public-config`;
-const CONFIG_URL = './config.js?v=0.4.4-offline-config';
+const CONFIG_URL = './config.js?v=0.4.5-fresh-sync';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.4-offline-config',
-  './vendor/dexie.min.js?v=0.4.4-offline-config',
-  './vendor/remote-client.min.js?v=0.4.4-offline-config',
-  './storage.js?v=0.4.4-offline-config',
-  './sync.js?v=0.4.4-offline-config',
-  './app.js?v=0.4.4-offline-config',
+  './styles.css?v=0.4.5-fresh-sync',
+  './vendor/dexie.min.js?v=0.4.5-fresh-sync',
+  './vendor/remote-client.min.js?v=0.4.5-fresh-sync',
+  './storage.js?v=0.4.5-fresh-sync',
+  './sync.js?v=0.4.5-fresh-sync',
+  './app.js?v=0.4.5-fresh-sync',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',
@@ -32,7 +32,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  if (new URL(event.request.url).pathname.endsWith('/config.js')) {
+  const url = new URL(event.request.url);
+  // Remote database and authentication responses must never enter the offline cache.
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.endsWith('/config.js')) {
     event.respondWith(caches.open(CONFIG_CACHE_NAME).then(async (cache) => {
       try {
         const response = await fetch(event.request);
@@ -48,6 +51,8 @@ self.addEventListener('fetch', (event) => {
     }));
     return;
   }
+  const shellPaths = new Set(APP_SHELL.map((path) => new URL(path, self.location.href).pathname));
+  if (!shellPaths.has(url.pathname)) return;
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)
     .then((response) => {
       const copy = response.clone();
