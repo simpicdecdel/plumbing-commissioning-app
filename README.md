@@ -34,7 +34,7 @@ An organisation member must be signed in to view or edit records and export back
 
 The technician screen uses compact **My commissioning** cards with **Open/Continue**. Successful sync appears at the top; pending uploads and conflicts stay visible on cards. Timestamps and printing are inside **Record details and actions**; backup export is in **Account**. The typed technician name is a commissioning field, not proof of who last edited the record. The card therefore labels it **Technician**, separately from **Last saved**.
 
-Before deploying v0.4.7, apply `supabase/migrations/20260909010000_plant_assignments.sql`. Existing plants remain unassigned for administrators to allocate. Reassignment is checked before online uploads. Withdrawn plants are hidden from the previous technician while pending work is retained for Administrator review on that device. The normal product does not hard-delete central records; withdrawal checks cover retained central rows, including soft deletions.
+The v0.4.7 assignment migration is a prerequisite for v0.4.8. Existing plants remain unassigned for administrators to allocate. Reassignment is checked before online uploads. Withdrawn plants are hidden from the previous technician while pending work is retained for Administrator review on that device. The normal product does not hard-delete central records; withdrawal checks cover retained central rows, including soft deletions.
 
 Sign-out hides records and retains pending work. Offline access uses the signed-in user's last verified membership, which is checked again on reconnect. These application controls do not encrypt the browser's local database. See [release verification](docs/release-verification.md) for automated and physical-device evidence.
 
@@ -92,6 +92,10 @@ pnpm build:remote
 
 `config.js` contains the production Supabase project URL and browser-safe publishable key. Copy `config.example.js` and replace those public values for another deployment. Never commit a secret key, legacy `service_role` key, database password or access token.
 
+To add users, use the local [user provisioning tool](docs/user-provisioning.md). It accepts first name, surname, email and role for one user or a CSV batch. It previews changes by default, preserves existing accounts on repeat runs, and uses the saved encrypted credential without putting privileged keys in the browser.
+
+The [desktop admin console](docs/admin-console.md) adds organisation statistics and central record inspection for administrators, plus user management and activity history for explicitly granted super administrators. Its database migration and Edge Function must be deployed before the v0.4.8 client.
+
 ## Automated iPhone-style testing
 
 Windows cannot run Apple's iOS Simulator because it is supplied with Xcode on macOS. This repository uses Playwright WebKit with the `iPhone 13` device profile as the local substitute. It emulates the iPhone viewport, touch input, user agent and WebKit browser engine. It does not reproduce the full iOS operating system, real Mobile Safari, Add to Home Screen prompts, camera access or device-specific hardware behaviour.
@@ -127,7 +131,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.4.7 mobile header and overflow, PWA assets, service-worker control and fresh database responses, IndexedDB persistence, autosave, backup restoration, invalid-backup rejection, search, unit fault validation, password recovery, cross-device synchronisation, offline queueing and both conflict-resolution choices. It also checks local sign-in and organisation gates, technician restrictions, pending work after re-login and backup-confirmed local upload. Authentication and synchronisation tests use a mocked remote client except the recovery-callback test. Schema tests inspect migrations and public configuration and exercise service-worker caching. The normal suite does not access Supabase. GitHub Actions runs it for pull requests and changes to `main`.
+The browser suite checks the v0.4.8 mobile header and overflow, PWA assets, service-worker control and fresh database responses, IndexedDB persistence, autosave, backup restoration, invalid-backup rejection, search, unit fault validation, password recovery, cross-device synchronisation, offline queueing and both conflict-resolution choices. It also checks local sign-in and organisation gates, technician restrictions, pending work after re-login and backup-confirmed local upload. Authentication and synchronisation tests use a mocked remote client except the recovery-callback test. Schema tests inspect migrations and public configuration and exercise service-worker caching. The normal suite does not access Supabase. GitHub Actions runs it for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 

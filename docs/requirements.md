@@ -440,6 +440,14 @@ The following capabilities are outside the current MVP until separately accepted
 - Plant or unit-specific forms and validation
 - Reporting and management dashboards
 
+### REQ-F-019: Desktop administration console
+
+- Approved scope: Administrators inspect organisation statistics and central records, including assignment and revision-checked lifecycle actions. Only explicitly provisioned super administrators manage user accounts and view administrative activity.
+- Account actions: create users, change Administrator/Technician roles, send recovery emails, require password changes, deactivate/reactivate users and delete unused accounts. Protect super administrators and the acting account from console mutation. Retain accounts referenced by commissioning history.
+- Access controls: enforce deactivation and mandatory password changes in database policies and existing record RPCs, including older clients. Offline devices detect restrictions on reconnect. Privileged keys stay in the server function.
+- Audit: record administrative user operations and record assignment/lifecycle changes from implementation onward, without passwords or tokens.
+- Implementation state: v0.4.8 branch and isolated test backend implemented. Production release and physical-device acceptance pending. See `admin-console.md` for deployment and limitations.
+
 ## 9. Open decisions
 
 1. Which plant types and unit types does the business commission?

@@ -55,7 +55,7 @@ function renderAuthState(authState = {}) {
   const oldAccess = access;
   const departingDraft = oldAccess && !formView.hidden ? collectFormData('Draft') : null;
   const previousAccess = JSON.stringify(access);
-  access = authState.user && authState.membership?.organisationId && !authState.recovery
+  access = authState.user && authState.membership?.organisationId && !authState.recovery && !authState.passwordChangeRequired && !authState.disabled
     ? { userId: authState.user.id, organisationId: authState.membership.organisationId, role: authState.membership.role } : null;
   if (previousAccess !== JSON.stringify(access)) {
     clearTimeout(autosaveTimer);
@@ -82,7 +82,12 @@ function renderAuthState(authState = {}) {
   document.querySelector('#assignmentSelectLabel').hidden = technicianView;
   document.querySelector('#selfAssignment').hidden = !technicianView;
   const signedIn = Boolean(authState.user);
-  const recovery = Boolean(authState.recovery);
+  const recovery = Boolean(authState.recovery || authState.passwordChangeRequired);
+  document.querySelector('#adminConsoleLink').hidden = access?.role !== 'administrator';
+  if (authState.passwordChangeRequired) {
+    showAuthMessage('Your administrator requires a password change before you can continue.');
+    if (!authDialog.open) authDialog.showModal();
+  }
   document.querySelector('#accountButton').textContent = signedIn ? (authState.membership?.role === 'administrator' ? 'Administrator' : 'Account') : 'Sign in';
   signInForm.hidden = signedIn || recovery;
   setPasswordForm.hidden = !recovery;
@@ -91,7 +96,7 @@ function renderAuthState(authState = {}) {
   document.querySelector('#accountEmail').textContent = authState.user?.email || '';
   document.querySelector('#accountRole').textContent = authState.membership
     ? `${authState.membership.organisationName || 'Organisation'} · ${authState.membership.role}`
-    : signedIn ? 'No organisation membership found.' : '';
+    : authState.disabled ? 'Your account has been deactivated.' : signedIn ? 'No organisation membership found.' : '';
   document.querySelector('#syncButton').hidden = !signedIn || !authState.membership;
   storageNotice.textContent = signedIn && authState.membership
     ? technicianView ? 'Only plants assigned to you appear here. New plants are assigned to you automatically.' : 'New records sync to your organisation. Use Upload local records for earlier records after saving a backup.'
@@ -715,8 +720,10 @@ signInForm.addEventListener('submit', async (event) => {
   try {
     await remote.signIn(document.querySelector('#authEmail').value.trim(), document.querySelector('#authPassword').value);
     signInForm.reset();
-    showAuthMessage('Signed in.');
-    authDialog.close();
+    if (!remote.getState().passwordChangeRequired) {
+      showAuthMessage('Signed in.');
+      authDialog.close();
+    }
   } catch (error) { showAuthMessage(error.message, true); }
 });
 

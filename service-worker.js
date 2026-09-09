@@ -1,15 +1,15 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.7-plant-assignments';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.8-admin-console';
 const CONFIG_CACHE_NAME = `${CACHE_NAME}-public-config`;
-const CONFIG_URL = './config.js?v=0.4.7-plant-assignments';
+const CONFIG_URL = './config.js?v=0.4.8-admin-console';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.7-plant-assignments',
-  './vendor/dexie.min.js?v=0.4.7-plant-assignments',
-  './vendor/remote-client.min.js?v=0.4.7-plant-assignments',
-  './storage.js?v=0.4.7-plant-assignments',
-  './sync.js?v=0.4.7-plant-assignments',
-  './app.js?v=0.4.7-plant-assignments',
+  './styles.css?v=0.4.8-admin-console',
+  './vendor/dexie.min.js?v=0.4.8-admin-console',
+  './vendor/remote-client.min.js?v=0.4.8-admin-console',
+  './storage.js?v=0.4.8-admin-console',
+  './sync.js?v=0.4.8-admin-console',
+  './app.js?v=0.4.8-admin-console',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',

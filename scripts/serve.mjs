@@ -25,6 +25,9 @@ const contentTypes = {
   '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
 const publicPaths = new Set([
+  'admin.html',
+  'admin.css',
+  'admin.js',
   'app.js',
   'config.js',
   'icons/app-icon.svg',
