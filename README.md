@@ -96,6 +96,8 @@ To add users, use the local [user provisioning tool](docs/user-provisioning.md).
 
 The [desktop admin console](docs/admin-console.md) adds organisation statistics and central record inspection for administrators, plus user management and activity history for explicitly granted super administrators. Its database migration and Edge Function must be deployed before the v0.4.8 client.
 
+The production migration, single-operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Production console workflows and the required physical-iPhone acceptance checks remain outstanding; see [release verification](docs/release-verification.md).
+
 ## Automated iPhone-style testing
 
 Windows cannot run Apple's iOS Simulator because it is supplied with Xcode on macOS. This repository uses Playwright WebKit with the `iPhone 13` device profile as the local substitute. It emulates the iPhone viewport, touch input, user agent and WebKit browser engine. It does not reproduce the full iOS operating system, real Mobile Safari, Add to Home Screen prompts, camera access or device-specific hardware behaviour.

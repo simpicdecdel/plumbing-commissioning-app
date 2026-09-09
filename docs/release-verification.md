@@ -3,13 +3,13 @@
 ## v0.4.8: desktop admin console
 
 - A separate desktop console provides central statistics, record inspection and assignments to Administrators. A separately provisioned server-side operator capability controls user administration and activity history.
-- The migration and authenticated Edge Function have been applied only to the isolated test project. Production migration, the single approved owner bootstrap and deployment remain pending release approval.
+- The production migration, operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Read-only production checks found `get_my_access_controls`, `admin_console_context` and `console_operators`; exactly one console operator had the Administrator role and one organisation membership. The Management API listed one `admin-console` function with `verify_jwt` disabled as required by the handler's own token verification. These checks did not exercise privileged production actions or inspect user or plant payloads.
 - The existing 28 local WebKit checks passed. Three desktop console checks passed after adding the new files to the local server allowlist. The overview was rendered and inspected.
 - The live console suite passed both in-process and against the deployed Edge Function: organisation scope, ordinary-role denial, protected accounts, deactivation, forced password change, creation/repeat handling, role changes, history-preserving deletion and audit checks.
 - Real browser integration passed for console user listing, forcing a technician password change, blocking the field app and restoring access after the change. The test caught and verified a fix for invalidated Auth sessions: the client now signs in with the new password after a successful forced change.
 - A known password restriction remained active when Auth was reinitialised offline from its cached state. Windows WebKit failed offline navigation internally, so actual offline reload acceptance remains a physical-device check rather than a claimed automated pass.
 - The initial pull-request checks exposed header overflow after adding the Admin console link. CI evidence isolated the remaining problem at 800-pixel tablet width. The header now stacks through tablet widths and wraps its controls; the responsive upload regression covers 390, 800 and 1280 pixels.
-- No production user or plant data was modified during console implementation. Physical-device acceptance remains required after release.
+- No production user or plant data was modified during console implementation or the read-only deployment checks. End-to-end production console acceptance and physical-device acceptance remain required.
 
 ## v0.4.7: technician view and plant assignment
 

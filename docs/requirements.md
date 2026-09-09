@@ -446,7 +446,7 @@ The following capabilities are outside the current MVP until separately accepted
 - Account actions: create users, change Administrator/Technician roles, send recovery emails, require password changes, deactivate/reactivate users and delete unused accounts. Protect super administrators and the acting account from console mutation. Retain accounts referenced by commissioning history.
 - Access controls: enforce deactivation and mandatory password changes in database policies and existing record RPCs, including older clients. Offline devices detect restrictions on reconnect. Privileged keys stay in the server function.
 - Audit: record administrative user operations and record assignment/lifecycle changes from implementation onward, without passwords or tokens.
-- Implementation state: v0.4.8 branch and isolated test backend implemented. Production release and physical-device acceptance pending. See `admin-console.md` for deployment and limitations.
+- Implementation state: v0.4.8 is merged, and the production migration, single-operator bootstrap, Edge Function and GitHub Pages client were confirmed deployed on 9 September 2026. Local, isolated live and deployed test-handler checks passed. End-to-end production console workflows and physical-device acceptance remain pending. See `admin-console.md` for deployment evidence and limitations.
 
 ## 9. Open decisions
 
