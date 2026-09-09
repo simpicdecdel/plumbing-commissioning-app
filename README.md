@@ -92,6 +92,8 @@ pnpm build:remote
 
 `config.js` contains the production Supabase project URL and browser-safe publishable key. Copy `config.example.js` and replace those public values for another deployment. Never commit a secret key, legacy `service_role` key, database password or access token.
 
+To add users, use the local [user provisioning tool](docs/user-provisioning.md). It accepts first name, surname, email and role for one user or a CSV batch. It previews changes by default, preserves existing accounts on repeat runs, and uses the saved encrypted credential without putting privileged keys in the browser.
+
 ## Automated iPhone-style testing
 
 Windows cannot run Apple's iOS Simulator because it is supplied with Xcode on macOS. This repository uses Playwright WebKit with the `iPhone 13` device profile as the local substitute. It emulates the iPhone viewport, touch input, user agent and WebKit browser engine. It does not reproduce the full iOS operating system, real Mobile Safari, Add to Home Screen prompts, camera access or device-specific hardware behaviour.
