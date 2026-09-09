@@ -1,5 +1,18 @@
 # Release verification
 
+## v0.4.7: technician view and plant assignment
+
+Implementation verified on 9 September 2026; production deployment is pending merge and migration.
+
+- One assigned technician per plant, optional unassigned state for Administrators, automatic self-assignment on technician creation, and continued editing after completion.
+- Compact My commissioning cards, grouped form sections, metadata and printing inside the record, and Account backup export. Pending uploads and conflicts remain visible.
+- A separate assigned account column governs database reads and writes. Typed names do not grant access. Existing plants remain unassigned for explicit allocation.
+- The application checks an authoritative assignment snapshot before uploading. Withdrawn offline edits remain on the original device and become reviewable conflicts when an Administrator signs in there. Keeping the retained content preserves the current assignment.
+- Local suite: 15 schema/service-worker checks and 28 WebKit browser tests passed. Live suite: six API tests and five WebKit tests passed in the isolated test project. Tests cover another technician in the same organisation, unassigned records, forged assignment, revoked membership, completed edits and offline reassignment with administrator recovery.
+- The reassignment scenario passed again after final UI checks, including keeping the retained edit without changing the new assignee. Mobile list and form screenshots were inspected. Cleanup found zero tagged users and organisations remaining.
+- The assignment migration has been applied only to the test project. Apply it before the new production client is deployed, then allocate existing plants and refresh technician devices.
+- A physical iPhone check of the new technician role and reassignment behaviour remains required after deployment. Automated WebKit is not a complete iOS/PWA substitute.
+
 ## v0.4.6: team access and record recovery
 
 Verification date: 9 September 2026.
@@ -28,6 +41,6 @@ The normal suite covers service-worker freshness and offline shell caching, pass
 - Earlier release: the user confirmed password recovery and successful sign-in with the new password on a physical iPhone.
 - 4 September, v0.4.4: the user confirmed an offline edit, closing and reopening offline, reconnecting and seeing the edit on both iPhone and laptop.
 - v0.4.5: the stale database-response cache was removed. The user confirmed all five intended active records were visible on the devices.
-- The v0.4.6 checks above use automated WebKit contexts. A fresh physical-iPhone offline restart and reconnect check for v0.4.6 remains outstanding. Windows WebKit does not reproduce all Mobile Safari and installed-PWA behaviour.
+- On 9 September the user confirmed v0.4.6 physical-iPhone offline save, close/reopen while offline, reconnect and desktop visibility, then deletion and restoration across devices without reloading. Cleanup returned both devices to the original five records. This does not validate the new v0.4.7 assignment behaviour.
 
 The production project remains separate from the disposable test project. Production record names and payloads are omitted from this public verification note.

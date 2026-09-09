@@ -52,7 +52,7 @@ test('uploads on one fresh device and downloads on another', async ({ browser })
   await signIn(phone);
   await createRecord(phone, 'Cross-device Site');
   await expect(phone.locator('#syncStatus')).toHaveText('Synced just now');
-  await expect(phone.locator('.record-card').filter({ hasText: 'Cross-device Site' })).toContainText('Saved by technician');
+  await expect(phone.locator('.record-card').filter({ hasText: 'Cross-device Site' })).toContainText('Last saved:');
   await expect(phone.locator('.record-card').filter({ hasText: 'Cross-device Site' })).toContainText('Sync Tester');
   await expect(phone.locator('.record-card').filter({ hasText: 'Cross-device Site' })).toContainText('Sync details');
   await expect.poll(() => phone.evaluate(() => JSON.parse(localStorage.getItem('mock-server-records') || '[]').length)).toBe(1);

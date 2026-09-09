@@ -23,7 +23,7 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
     const outsider = await signInFixtureUser(fixture, 'outsider');
     const primaryOrganisationId = fixture.organisationIds[0];
     const recordId = randomUUID();
-    const initialPayload = { id: recordId, schemaVersion: 2, job: { siteName: `Live API ${fixture.runId}` }, updatedAt: new Date().toISOString() };
+    const initialPayload = { id: recordId, schemaVersion: 2, assignedTechnicianId: technician.user.id, job: { siteName: `Live API ${fixture.runId}` }, updatedAt: new Date().toISOString() };
 
     await t.test('members see only their organisation', async () => {
       const membership = await technician.client.from('organisation_members').select('organisation_id,role').eq('user_id', technician.user.id).single();
@@ -103,6 +103,46 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
       assert.equal(restored.error, null);
       assert.equal(firstRow(restored.data).revision, deletedRevision + 1);
       assert.equal(firstRow(restored.data).deleted_at, null);
+    });
+
+    await t.test('one technician per plant is enforced for reads, writes and reassignment', async () => {
+      const peer = await signInFixtureUser(fixture, 'peer');
+      const plantId = randomUUID();
+      const payload = { id: plantId, schemaVersion: 2, job: { siteName: 'Assignment permission fixture' } };
+      const write = (client, body, revision) => client.rpc('save_commissioning_record', { record_id: plantId, target_organisation_id: primaryOrganisationId, record_payload: body, expected_revision: revision });
+      const created = await write(technician.client, payload, 0);
+      assert.equal(created.error, null);
+      assert.equal(firstRow(created.data).assigned_technician_id, technician.user.id);
+      assert.equal(firstRow(created.data).payload.assignedTechnicianId, technician.user.id);
+      const peerRead = await peer.client.from('commissioning_records').select('id').eq('id', plantId);
+      assert.deepEqual(peerRead.data, []);
+      assert.equal((await write(peer.client, payload, 1)).error?.code, '42501');
+      assert.equal((await write(technician.client, { ...payload, assignedTechnicianId: peer.user.id }, 1)).error?.code, '42501');
+      const forged = await technician.client.rpc('save_commissioning_record', { record_id: randomUUID(), target_organisation_id: primaryOrganisationId, record_payload: { ...payload, assignedTechnicianId: peer.user.id }, expected_revision: 0 });
+      assert.equal(forged.error?.code, '42501');
+      const direct = await technician.client.from('commissioning_records').update({ assigned_technician_id: peer.user.id }).eq('id', plantId);
+      assert.ok(direct.error);
+      const badOrg = await write(administrator.client, { ...payload, assignedTechnicianId: outsider.user.id }, 1);
+      assert.equal(badOrg.error?.code, '22023');
+      const reassigned = await write(administrator.client, { ...payload, assignedTechnicianId: peer.user.id }, 1);
+      assert.equal(reassigned.error, null);
+      assert.equal(firstRow(reassigned.data).revision, 2);
+      assert.equal((await write(technician.client, payload, 1)).error?.code, '42501');
+      const withdrawn = await technician.client.rpc('sync_assigned_commissioning_records', { target_organisation_id: primaryOrganisationId, known_record_ids: [plantId] });
+      assert.equal(withdrawn.error, null);
+      assert.ok(withdrawn.data.withdrawn.includes(plantId));
+      assert.ok(!withdrawn.data.records.some((row) => row.id === plantId));
+      const peerVisible = await peer.client.from('commissioning_records').select('id').eq('id', plantId);
+      assert.equal(peerVisible.data.length, 1);
+      const completedEdit = await write(peer.client, { ...payload, status: 'Completed' }, 2);
+      assert.equal(completedEdit.error, null);
+      assert.equal((await write(peer.client, { ...payload, status: 'Completed', results: { notes: 'Edited after completion' } }, 3)).error, null);
+      assert.equal((await write(administrator.client, { ...payload, assignedTechnicianId: null }, 4)).error, null);
+      assert.deepEqual((await peer.client.from('commissioning_records').select('id').eq('id', plantId)).data, []);
+      const roster = await administrator.client.rpc('list_assignable_technicians', { target_organisation_id: primaryOrganisationId });
+      assert.equal(roster.error, null);
+      assert.deepEqual(new Set(roster.data.map((person) => person.user_id)), new Set([technician.user.id, peer.user.id]));
+      assert.equal((await technician.client.rpc('list_assignable_technicians', { target_organisation_id: primaryOrganisationId })).error?.code, '42501');
     });
 
     await t.test('revoked membership removes access from an existing session', async () => {

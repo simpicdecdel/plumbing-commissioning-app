@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the current release without horizontal overflow', async ({ page }) => {
   await expect(page).toHaveTitle('Plumbing Commissioning');
-  await expect(page.getByText('v0.4.6', { exact: true })).toBeVisible();
+  await expect(page.getByText('v0.4.7', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Commissioning records' })).toBeVisible();
 
   const layout = await page.evaluate(() => ({
@@ -44,11 +44,11 @@ test('serves a valid installable shell', async ({ request }) => {
   const workerResponse = await request.get('/service-worker.js');
   expect(workerResponse.ok()).toBe(true);
   const workerSource = await workerResponse.text();
-  expect(workerSource).toContain("plumbing-commissioning-v0.4.6-team-access");
-  expect(workerSource).toContain("'./storage.js?v=0.4.6-team-access'");
-  expect(workerSource).toContain("'./sync.js?v=0.4.6-team-access'");
-  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.6-team-access'");
-  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.6-team-access'");
+  expect(workerSource).toContain("plumbing-commissioning-v0.4.7-plant-assignments");
+  expect(workerSource).toContain("'./storage.js?v=0.4.7-plant-assignments'");
+  expect(workerSource).toContain("'./sync.js?v=0.4.7-plant-assignments'");
+  expect(workerSource).toContain("'./vendor/dexie.min.js?v=0.4.7-plant-assignments'");
+  expect(workerSource).toContain("'./vendor/remote-client.min.js?v=0.4.7-plant-assignments'");
   expect(workerSource).not.toMatch(/APP_SHELL[\s\S]*config\.js[\s\S]*\];/);
   expect(workerSource).toContain("pathname.endsWith('/config.js')");
   expect(workerSource).toContain('CONFIG_CACHE_NAME');
@@ -70,7 +70,7 @@ test('registers a service worker that controls the application shell and caches 
   const cachedConfig = await page.evaluate(async () => {
     const cacheName = (await caches.keys()).find((name) => name.endsWith('-public-config'));
     if (!cacheName) return null;
-    const response = await (await caches.open(cacheName)).match('./config.js?v=0.4.6-team-access');
+    const response = await (await caches.open(cacheName)).match('./config.js?v=0.4.7-plant-assignments');
     return response?.text() || null;
   });
   expect(cachedConfig).toBe('window.PLUMBING_APP_CONFIG = Object.freeze({});\n');

@@ -1,15 +1,15 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.6-team-access';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.7-plant-assignments';
 const CONFIG_CACHE_NAME = `${CACHE_NAME}-public-config`;
-const CONFIG_URL = './config.js?v=0.4.6-team-access';
+const CONFIG_URL = './config.js?v=0.4.7-plant-assignments';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.6-team-access',
-  './vendor/dexie.min.js?v=0.4.6-team-access',
-  './vendor/remote-client.min.js?v=0.4.6-team-access',
-  './storage.js?v=0.4.6-team-access',
-  './sync.js?v=0.4.6-team-access',
-  './app.js?v=0.4.6-team-access',
+  './styles.css?v=0.4.7-plant-assignments',
+  './vendor/dexie.min.js?v=0.4.7-plant-assignments',
+  './vendor/remote-client.min.js?v=0.4.7-plant-assignments',
+  './storage.js?v=0.4.7-plant-assignments',
+  './sync.js?v=0.4.7-plant-assignments',
+  './app.js?v=0.4.7-plant-assignments',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',

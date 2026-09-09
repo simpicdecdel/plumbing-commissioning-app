@@ -136,7 +136,7 @@ Priorities use Must, Should, Could and Later.
 
 - Status: Accepted
 - Priority: Should
-- Requirement: A technician must be able to delete a record after confirming the action.
+- Requirement: An Administrator must be able to delete a record after confirming the action.
 - Acceptance criteria:
   - The application asks for confirmation before deletion.
   - The record is removed only after confirmation.
@@ -235,6 +235,20 @@ Priorities use Must, Should, Could and Later.
   - The account view shows the organisation name and `technician` or `administrator` role when present.
   - A signed-in user without a membership sees a clear message.
 - Implementation state: Implemented in the authentication client and account UI. Membership and role also govern local record screens and administrator-only operations. Offline access uses the user's last verified membership until reconnecting.
+
+### REQ-F-018: Plant assignment and technician view
+
+- Status: Accepted, 9 September 2026
+- Requirement: Assignment applies to each plant record, not a whole site. Each plant has zero or one assigned technician.
+- Acceptance criteria:
+  - Technicians can create plants; the server assigns new plants to the authenticated technician automatically.
+  - Administrators can leave plants unassigned, assign them to a technician in the organisation, or reassign them.
+  - Technicians cannot read or edit other technicians' or unassigned plants, or change assignments through the API.
+  - Completed plants remain editable by their assigned technician.
+  - My commissioning shows compact cards containing site, plant/location, address, unit count, outcome and Open/Continue. Pending uploads, errors and conflicts remain visible.
+  - Save and sync times and printing are available inside the record; backup export remains available through Account.
+  - Reassignment is checked before uploads when online. Pending offline edits are retained on the original device for administrator review and cannot overwrite the new assignment silently.
+  - Offline devices retain their last known assignment until they reconnect. These controls do not encrypt local browser storage.
 
 ## 5. Record data requirements
 
@@ -367,7 +381,7 @@ Priorities use Must, Should, Could and Later.
 - Acceptance criteria:
   - Authentication uses invite-only email accounts through managed Supabase Authentication.
   - Supported roles are Technician and Administrator.
-  - Both roles can view, create and edit active records for their organisation.
+  - Administrators can view, create and edit all organisation records. Technicians can create plants and view/edit only plants assigned to their account.
   - Only Administrators can delete, restore or administer access.
   - Anonymous and cross-organisation access is denied by database row-level security.
 - Implementation state: The application requires a signed-in member before displaying or editing records. Cached records are filtered by organisation; drafts are scoped to user and organisation. Only Administrators see unassigned legacy records, delete controls, backup restore and central restore. Signing out clears the screen while retaining pending work. The server enforces membership and roles independently. Offline use relies on the last verified membership for the persisted user; revocation cannot be detected while disconnected and is rechecked on reconnect. These are application controls, not encryption of IndexedDB against someone controlling the device or developer tools.

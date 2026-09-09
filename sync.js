@@ -28,7 +28,7 @@
   async function refreshStatus(preferredState) {
     const current = context();
     if (!current) return emit({ state: 'local', pending: 0, conflicts: 0, errors: 0, synced: 0 });
-    const summary = await store.getSyncSummary(current.organisationId);
+    const summary = await store.getSyncSummary(current.organisationId, current.role === 'technician' ? current.userId : null);
     const state = preferredState
       || (summary.conflicts ? 'conflict'
         : summary.errors ? 'error'
@@ -53,10 +53,24 @@
     if (!navigator.onLine) return refreshStatus('offline');
     emit({ state: 'syncing' });
 
+    if (remote.assignmentAccess) {
+      try {
+        const entries = await store.listSyncEntries(current.organisationId);
+        const snapshot = await remote.listRecords(current.organisationId, entries.map((entry) => entry.remoteId));
+        if (!stillAuthorised()) return refreshStatus();
+        const changes = await store.applyRemoteRecords(current.organisationId, snapshot);
+        emit({ state: 'syncing' }, changes);
+      } catch (error) {
+        console.error('Could not verify plant assignments.', error);
+        return refreshStatus('error');
+      }
+    }
+
     const pendingEntries = await store.listPendingSync(current.organisationId);
     let failed = false;
     for (const entry of pendingEntries) {
       if (!stillAuthorised()) return refreshStatus();
+      if (current.role === 'technician' && entry.pendingRecord?.assignedTechnicianId !== current.userId) continue;
       try {
         if (entry.state === 'pending-save') {
           const saved = await remote.saveRecord({
@@ -96,7 +110,8 @@
     let changes = null;
     if (!failed) {
       try {
-        const remoteRecords = await remote.listRecords(current.organisationId);
+        const entries = await store.listSyncEntries(current.organisationId);
+        const remoteRecords = await remote.listRecords(current.organisationId, entries.map((entry) => entry.remoteId));
         if (!stillAuthorised()) return refreshStatus();
         changes = await store.applyRemoteRecords(current.organisationId, remoteRecords);
       } catch (error) {
