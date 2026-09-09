@@ -60,6 +60,26 @@ button { cursor: pointer; }
 .section-heading h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); }
 .section-heading .eyebrow { color: var(--brand); }
 .toolbar { flex-wrap: wrap; padding: .9rem; border-radius: 10px; background: #eef4f3; }
+.record-metadata { padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
+.record-metadata summary, .technician-section summary { min-height: 44px; padding: .6rem 0; cursor: pointer; color: var(--brand); font-weight: 750; }
+.technician-view .tabs, .technician-view .section-heading .eyebrow, .technician-view .app-header .eyebrow { display: none; }
+.technician-view .app-header { background: white; color: var(--brand); padding: 1rem; gap: .8rem; flex-direction: column; align-items: stretch; }
+.technician-view .app-header h1 { font-size: 1.1rem; }
+.technician-view .header-actions { gap: .4rem; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+.technician-view .app-header .button-secondary { border-color: var(--line); }
+.technician-view .app-version, .technician-view .status-pill { color: var(--brand); border-color: var(--line); }
+.technician-view .sync-status:not([data-state="local"]):not([data-state="offline"]), .technician-view .status-pill.offline { color: white; }
+.technician-view .shell { max-width: 44rem; }
+.technician-view .section-heading { align-items: stretch; flex-direction: column; }
+.technician-view .section-heading .button { width: 100%; }
+.technician-view .record-card { display: block; padding: 1rem; }
+.technician-view .plant-summary { margin: .35rem 0; }
+.technician-card-actions { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: .75rem; }
+.technician-sync-alert { margin-top: .75rem; color: var(--danger); }
+.technician-section { border-bottom: 1px solid var(--line); }
+.technician-section fieldset { border: 0; padding: .5rem 0; }
+.technician-view #recordMetadata { font-size: .9rem; }
+@media print { #assignmentField, #recordMetadata { display: none !important; } .technician-section summary { display: none; } }
 .search-field { flex: 1; }
 
 .button { min-height: 42px; border: 1px solid transparent; border-radius: 8px; padding: .55rem .9rem; font-weight: 750; }
@@ -96,6 +116,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px s
 .badge { display: inline-block; margin-top: .5rem; border-radius: 999px; padding: .2rem .55rem; background: #e8f4ef; color: var(--success); font-size: .76rem; font-weight: 800; }
 .badge.draft { background: #fff3dd; color: #835713; }
 .badge.failed { background: #fbe8e8; color: var(--danger); }
+.badge.attention { background: #fff3dd; color: #835713; }
 .empty-state { padding: 3rem 1rem; text-align: center; color: var(--muted); }
 .empty-state h3 { margin: .75rem 0 .25rem; color: var(--ink); }
 .empty-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: auto; border-radius: 14px; background: #e3f0ee; color: var(--brand); font-size: 1.5rem; font-weight: 800; }

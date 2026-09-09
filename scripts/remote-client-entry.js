@@ -118,20 +118,21 @@ if (config.enabled) {
       if (error) throw error;
       return resolveState(data.session);
     },
-    async listRecords(organisationId) {
-      const { data, error } = await client.from('commissioning_records')
-        .select('id, payload, revision, updated_at, deleted_at')
-        .eq('organisation_id', organisationId)
-        .order('updated_at', { ascending: true });
-      const records = requireData(data, error) || [];
-      const deletions = await client.rpc('list_commissioning_deletions', { target_organisation_id: organisationId });
-      const markers = requireData(deletions.data, deletions.error) || [];
-      const ids = new Set(records.map((record) => record.id));
-      return [...records, ...markers.filter((record) => !ids.has(record.id))];
+    assignmentAccess: true,
+    async listRecords(organisationId, knownRecordIds = []) {
+      const { data, error } = await client.rpc('sync_assigned_commissioning_records', {
+        target_organisation_id: organisationId, known_record_ids: knownRecordIds
+      });
+      const snapshot = requireData(data, error);
+      return [...snapshot.records, ...snapshot.withdrawn.map((id) => ({ id, access_revoked: true }))];
+    },
+    async listTechnicians(organisationId) {
+      const { data, error } = await client.rpc('list_assignable_technicians', { target_organisation_id: organisationId });
+      return requireData(data, error);
     },
     async getRecord(organisationId, remoteId) {
       const { data, error } = await client.from('commissioning_records')
-        .select('id, payload, revision, updated_at, deleted_at')
+        .select('id, payload, assigned_technician_id, revision, updated_at, deleted_at')
         .eq('organisation_id', organisationId)
         .eq('id', remoteId)
         .maybeSingle();

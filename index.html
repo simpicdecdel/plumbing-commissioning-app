@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.6-team-access">
+  <link rel="stylesheet" href="styles.css?v=0.4.7-plant-assignments">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,7 +17,7 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.4.6">v0.4.6</span>
+        <span class="app-version" aria-label="Application version 0.4.7">v0.4.7</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
       <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
@@ -36,11 +36,11 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">ON THIS DEVICE</p>
-          <h2>Commissioning records</h2>
+          <h2 id="recordsTitle">Commissioning records</h2>
         </div>
         <button id="newRecordButton" class="button button-primary" type="button">New record</button>
       </div>
-      <div class="toolbar">
+      <div class="toolbar" id="recordsTools">
         <label class="search-field">
           <span class="sr-only">Search records</span>
           <input id="recordSearch" type="search" placeholder="Search site, job, plant or unit">
@@ -82,6 +82,11 @@
 
       <form id="commissioningForm" novalidate>
         <input id="recordId" type="hidden">
+        <div id="assignmentField" hidden>
+          <label id="assignmentSelectLabel">Assigned technician <select id="assignedTechnician"><option value="">Unassigned</option></select></label>
+          <p id="assignmentMessage" class="field-help"></p>
+          <p id="selfAssignment" class="field-help" hidden>Assigned to you</p>
+        </div>
 
         <fieldset>
           <legend>Job details</legend>
@@ -163,11 +168,16 @@
           </div>
         </fieldset>
 
+        <details id="recordMetadata" class="record-metadata">
+          <summary>Record details and actions</summary>
+          <p id="recordTechnicianName"></p><p id="recordSavedTime"></p><p id="recordSyncTime"></p>
+          <button id="printRecordButton" class="button button-secondary" type="button">Print record</button>
+        </details>
         <div class="form-actions">
           <p id="saveStatus" class="save-status" aria-live="polite">Drafts save on this device.</p>
           <div>
             <button id="saveDraftButton" class="button button-secondary" type="button">Save draft</button>
-            <button class="button button-primary" type="submit">Complete record</button>
+            <button id="completeRecordButton" class="button button-primary" type="submit">Complete record</button>
           </div>
         </div>
       </form>
@@ -263,11 +273,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js?v=0.4.6-team-access" defer></script>
-  <script src="storage.js?v=0.4.6-team-access" defer></script>
-  <script src="config.js?v=0.4.6-team-access" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.6-team-access" defer></script>
-  <script src="sync.js?v=0.4.6-team-access" defer></script>
-  <script src="app.js?v=0.4.6-team-access" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="storage.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="config.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="sync.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="app.js?v=0.4.7-plant-assignments" defer></script>
 </body>
 </html>

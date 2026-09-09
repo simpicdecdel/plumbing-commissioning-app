@@ -17,7 +17,7 @@ async function createLiveContext(browser) {
   return context;
 }
 
-async function signIn(page, userKey) {
+async function signIn(page, userKey, expectedStatus = 'Synced') {
   const user = fixture.users[userKey];
   await expect.poll(() => page.evaluate(() => window.PLUMBING_APP_CONFIG?.supabaseUrl))
     .toBe(fixture.config.supabaseUrl);
@@ -27,18 +27,21 @@ async function signIn(page, userKey) {
   await form.getByLabel('Password').fill(user.password);
   await form.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('button', { name: user.role === 'administrator' ? 'Administrator' : 'Account' })).toBeVisible();
-  await expect(page.locator('#syncStatus')).toContainText('Synced');
+  await expect(page.locator('#syncStatus')).toContainText(expectedStatus);
 }
 
 async function completeRecord(page, siteName) {
-  await page.getByRole('button', { name: 'New record' }).click();
+  await page.locator('#newRecordButton').click();
+  await expect(page.locator('#formView')).toBeVisible();
+  if (await page.locator('#assignmentSelectLabel').isVisible()) await page.locator('#assignedTechnician').selectOption(fixture.users.technician.id);
   await page.locator('#customer').fill(siteName);
   await page.locator('#address').fill('10 Automated Test Street, Sydney NSW');
   await page.locator('#technician').fill('Automated Test User');
   await page.locator('#plantName').fill('Automated Test Plant');
   await page.locator('[data-unit-field="label"]').first().fill('AUTO-HWS-01');
+  if (await page.locator('.technician-section').count()) await page.locator('.technician-section').filter({ has: page.locator('#outcome') }).locator('summary').click();
   await page.locator('#outcome').selectOption('Passed');
-  await page.getByRole('button', { name: 'Complete record' }).click();
+  await page.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
   await expect(page.locator('#formView')).toBeHidden();
   await expect(page.locator('.record-card').filter({ hasText: siteName })).toBeVisible();
   await expect(page.locator('#syncStatus')).toContainText('Synced');
@@ -75,7 +78,7 @@ test('real users synchronise and resolve a stale edit through the app', async ({
   await technicianPage.locator('.record-card').filter({ hasText: initialSite }).getByRole('button', { name: 'Open' }).click();
   await replaceSiteName(technicianPage, centralEdit);
   const localRecordId = await technicianPage.locator('#recordId').inputValue();
-  await technicianPage.getByRole('button', { name: 'Complete record' }).click();
+  await technicianPage.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
   await expect(technicianPage.locator('#formView')).toBeHidden();
   const centralRecord = await fixture.admin.from('commissioning_records')
     .select('payload,revision')
@@ -89,7 +92,7 @@ test('real users synchronise and resolve a stale edit through the app', async ({
 
   await administratorPage.locator('.record-card').filter({ hasText: initialSite }).getByRole('button', { name: 'Open' }).click();
   await replaceSiteName(administratorPage, staleEdit);
-  await administratorPage.getByRole('button', { name: 'Complete record' }).click();
+  await administratorPage.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
   await expect(administratorPage.locator('#syncStatus')).toHaveText('1 conflict');
   await administratorPage.getByRole('button', { name: 'Resolve' }).click();
 
@@ -128,7 +131,7 @@ test('offline edits upload on reconnect and after reopening the page', async ({ 
     await context.setOffline(true);
     await expect(page.locator('#networkStatus')).toHaveText('Offline ready');
     await replaceSiteName(page, siteName);
-    await page.getByRole('button', { name: 'Complete record' }).click();
+    await page.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
     await expect(page.locator('#formView')).toBeHidden();
     await expect(page.locator('.record-card').filter({ hasText: siteName })).toBeVisible();
     await expect(page.locator('#syncStatus')).toHaveText('1 pending');
@@ -200,7 +203,7 @@ test('expired session with invalid refresh token preserves offline work through 
   await page.locator('.record-card').filter({ hasText: site }).getByRole('button', { name: 'Open' }).click();
   await context.setOffline(true);
   await replaceSiteName(page, edited);
-  await page.getByRole('button', { name: 'Complete record' }).click();
+  await page.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
   await expect(page.locator('#syncStatus')).toHaveText('1 pending');
   // Expire only this disposable test browser session; no production credentials are used.
   await page.evaluate(() => {
@@ -219,4 +222,52 @@ test('expired session with invalid refresh token preserves offline work through 
   const result = await fixture.admin.from('commissioning_records').select('payload,revision')
     .eq('organisation_id', fixture.organisationIds[0]).eq('payload->job->>siteName', edited);
   assert.equal(result.error, null); assert.equal(result.data.length, 1); assert.equal(result.data[0].revision, 2);
+});
+
+test('technician creation and offline reassignment preserve work without leaking other plants', async ({ browser }, testInfo) => {
+  const phoneContext = await createLiveContext(browser);
+  const phone = await phoneContext.newPage();
+  await phone.goto('/'); await signIn(phone, 'technician');
+  const site = `Assigned plant ${fixture.runId}`;
+  await completeRecord(phone, site);
+  await expect(phone.locator('#recordsTitle')).toHaveText('My commissioning');
+  const card = (page, name = site) => page.locator('.record-card').filter({ hasText: name });
+  await expect(card(phone).getByRole('button', { name: 'Print', exact: true })).toHaveCount(0);
+  await expect(card(phone)).not.toContainText('Last saved');
+  await phone.screenshot({ path: testInfo.outputPath('technician-list.png'), fullPage: true });
+  const peer = await (await createLiveContext(browser)).newPage();
+  await peer.goto('/'); await signIn(peer, 'peer');
+  await expect(card(peer)).toHaveCount(0);
+  const adminPage = await (await createLiveContext(browser)).newPage();
+  await adminPage.goto('/'); await signIn(adminPage, 'administrator');
+  await expect(card(adminPage)).toBeVisible();
+  await card(phone).getByRole('button', { name: 'Open', exact: true }).click();
+  await expect(phone.locator('#formView')).toBeVisible();
+  await phone.screenshot({ path: testInfo.outputPath('technician-record.png'), fullPage: true });
+  await phoneContext.setOffline(true);
+  const offlineName = `Retained offline ${fixture.runId}`;
+  await replaceSiteName(phone, offlineName);
+  await phone.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
+  await expect(phone.locator('#syncStatus')).toHaveText('1 pending');
+  await card(adminPage).getByRole('button', { name: 'Open', exact: true }).click();
+  await adminPage.locator('#assignedTechnician').selectOption(fixture.users.peer.id);
+  await adminPage.getByRole('button', { name: /^(Complete record|Save changes)$/ }).click();
+  await expect(adminPage.locator('#formView')).toBeHidden();
+  await expect(adminPage.locator('#syncStatus')).toContainText('Synced');
+  await phoneContext.setOffline(false);
+  await expect(card(phone, offlineName)).toHaveCount(0);
+  await expect.poll(() => phone.evaluate(async () => (await commissioningStore.listSyncEntries(commissioningRemote.getState().membership.organisationId)).filter((entry) => entry.accessRevoked && entry.pendingRecord).length)).toBe(1);
+  await peer.getByRole('button', { name: 'Sync now' }).click();
+  await expect(card(peer)).toBeVisible();
+  await expect(card(peer, offlineName)).toHaveCount(0);
+  // An Administrator on the original device can review the retained edit.
+  await phone.evaluate(() => commissioningRemote.signOut());
+  await signIn(phone, 'administrator', '1 conflict');
+  await expect(card(phone, offlineName).getByRole('button', { name: 'Resolve', exact: true })).toBeVisible();
+  await card(phone, offlineName).getByRole('button', { name: 'Resolve', exact: true }).click();
+  phone.once('dialog', (dialog) => dialog.accept());
+  await phone.getByRole('button', { name: 'Keep technician version', exact: true }).click();
+  await expect(phone.locator('#conflictDialog')).toBeHidden();
+  await peer.getByRole('button', { name: 'Sync now' }).click();
+  await expect(card(peer, offlineName)).toBeVisible();
 });

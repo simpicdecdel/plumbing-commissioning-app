@@ -29,13 +29,21 @@ Access and recovery workflow:
 
 Signing out hides local records and preserves pending work. Existing local records are deliberately not uploaded merely by signing in. Offline membership is cached for the persisted user and revalidated when online; local IndexedDB is not encrypted by this mechanism. See `release-verification.md` for observed behaviour and test limits.
 
+## Plant assignment deployment
+
+Apply `20260909010000_plant_assignments.sql` before publishing the v0.4.7 client. The migration adds a nullable assigned account ID, tightens row-level reads and replaces the existing save RPC in place so older clients cannot bypass write permissions. Existing records remain unassigned; never infer account assignment from typed technician names.
+
+The Administrator form loads current technician accounts through an administrator-only roster RPC. The sync snapshot returns permitted records plus withdrawal notices only for known IDs that still exist centrally. New offline records that have never been uploaded are not treated as withdrawn. A lost creation response does not prevent withdrawal detection after later reassignment.
+
+On reconnect the client checks assignments before sending pending work. It retains withdrawn edits in the local outbox without uploading them. An Administrator signing into the original device receives the current central version and a conflict review for the retained edit. Choosing the retained content preserves the current central assignment. Users must update/reopen older clients; offline caches cannot be remotely revoked before contact with the service. Do not hard-delete central rows through external administration while devices may hold unsynchronised work.
+
 ## Production shape
 
 - Supabase managed project in the Sydney region.
 - Invite-only email accounts.
 - One initial organisation.
 - `technician` and `administrator` roles.
-- All organisation members can view and save active commissioning records.
+- Administrators can view all organisation records. Technicians can view and save only their assigned plants and create plants assigned to themselves.
 - Administrators can soft-delete and restore records.
 - IndexedDB remains the offline working store.
 - Server writes use revision checks. A stale device receives a conflict rather than overwriting a newer record.
@@ -110,9 +118,9 @@ Run the current static schema checks with `pnpm test:schema` and the full local 
 
 ### Disposable live-test identities
 
-The opt-in live integration suite uses the Supabase Auth Admin API from Node, never from browser code. It requires a dedicated test project and a secret key supplied through `PLUMBING_TEST_SUPABASE_SECRET_KEY`. Each run creates three auto-confirmed users with reserved `example.invalid` addresses and identifying Auth metadata:
+The opt-in live integration suite uses the Supabase Auth Admin API from Node, never from browser code. It requires a dedicated test project and a secret key supplied through `PLUMBING_TEST_SUPABASE_SECRET_KEY`. Each run creates four auto-confirmed users with reserved `example.invalid` addresses and identifying Auth metadata:
 
-- An administrator and technician in one temporary organisation.
+- An administrator and two technicians in one temporary organisation.
 - An outsider in a second temporary organisation for isolation checks.
 
 The suite also removes a technician's membership while that user's existing session remains active, then proves that row reads return no organisation data and revision-checked writes are denied immediately. It deletes test records first, followed by remaining memberships, organisations and Auth users. This order satisfies the database foreign keys. `pnpm test:live:cleanup -- --confirm` removes tagged fixtures left by an interrupted run and stops if any tagged user belongs to a non-test organisation.

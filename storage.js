@@ -214,6 +214,7 @@
         recordId: record.id,
         remoteId: existing?.remoteId || makeUuid(),
         organisationId,
+        assignedTechnicianId: record.assignedTechnicianId || null,
         revision: existing?.revision || 0,
         state: 'pending-save',
         pendingRecord: copy(record),
@@ -254,6 +255,7 @@
       if (!existing) return;
       await database.sync.put({
         ...existing,
+        assignedTechnicianId: remoteRecord.payload?.assignedTechnicianId || null,
         revision: remoteRecord.revision,
         state: 'synced',
         pendingRecord: null,
@@ -328,6 +330,8 @@
         await database.records.put(record);
         await database.sync.put({
           ...entry,
+          assignedTechnicianId: record.assignedTechnicianId || null,
+          accessRevoked: false,
           revision: serverRecord.revision,
           state: 'synced',
           pendingRecord: null,
@@ -351,8 +355,11 @@
         }
         const record = await database.records.get(recordId);
         if (!record) throw new Error('The technician version is no longer available on this device.');
+        record.assignedTechnicianId = entry.serverRecord.payload?.assignedTechnicianId || null;
+        await database.records.put(record);
         const queued = {
           ...entry,
+          assignedTechnicianId: record.assignedTechnicianId,
           revision: entry.serverRecord.revision,
           state: 'pending-save',
           pendingRecord: copy(record),
@@ -374,6 +381,18 @@
 
         for (const remoteRecord of remoteRecords) {
           const existing = byRemoteId.get(remoteRecord.id);
+          if (remoteRecord.access_revoked) {
+            if (existing) {
+              await database.sync.put({ ...existing, state: 'access-revoked', accessRevoked: true, error: 'Assignment changed. Pending work is retained for Administrator review.' });
+              removed++;
+            }
+            continue;
+          }
+          if (existing?.accessRevoked && existing.pendingRecord) {
+            await database.sync.put({ ...existing, accessRevoked: false, assignedTechnicianId: remoteRecord.payload?.assignedTechnicianId || null, state: 'conflict', serverRecord: copy(remoteRecord), error: 'Review the retained offline edit after reassignment.' });
+            downloaded++;
+            continue;
+          }
           if (existing && ['pending-save', 'pending-delete', 'conflict'].includes(existing.state)) continue;
           if (existing?.revision && remoteRecord.revision < existing.revision) continue;
 
@@ -404,6 +423,8 @@
           await database.records.put({ ...copy(remoteRecord.payload), id: recordId });
           await database.sync.put({
             ...(existing || { recordId, remoteId: remoteRecord.id, organisationId }),
+            accessRevoked: false,
+            assignedTechnicianId: remoteRecord.payload.assignedTechnicianId || null,
             revision: remoteRecord.revision,
             state: 'synced',
             pendingRecord: null,
@@ -439,9 +460,10 @@
         return { restored: records.length, added, replaced };
       });
     },
-    async getSyncSummary(organisationId) {
+    async getSyncSummary(organisationId, technicianId = null) {
       await ready;
-      const entries = await database.sync.where('organisationId').equals(organisationId).toArray();
+      const entries = (await database.sync.where('organisationId').equals(organisationId).toArray())
+        .filter((entry) => !technicianId || (!entry.accessRevoked && entry.assignedTechnicianId === technicianId));
       return {
         pending: entries.filter((entry) => entry.state === 'pending-save' || entry.state === 'pending-delete').length,
         conflicts: entries.filter((entry) => entry.state === 'conflict').length,

@@ -69,6 +69,7 @@ export async function createLiveTestFixture() {
   const userSpecs = [
     { key: 'administrator', role: 'administrator', organisationId: organisationIds[0] },
     { key: 'technician', role: 'technician', organisationId: organisationIds[0] },
+    { key: 'peer', role: 'technician', organisationId: organisationIds[0] },
     { key: 'outsider', role: 'administrator', organisationId: organisationIds[1] }
   ];
   const users = {};

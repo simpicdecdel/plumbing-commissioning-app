@@ -34,6 +34,7 @@ test('technicians cannot delete or restore and other organisations cannot see ca
   await page.evaluate((state) => window.testSetAccess(state), member());
   await page.getByRole('button', { name: 'New record' }).click();
   await page.locator('#customer').fill('Private team record');
+  await page.locator('#assignedTechnician').selectOption('user-1');
   await page.getByRole('button', { name: 'Save draft', exact: true }).click();
   await page.getByRole('button', { name: 'Back to records' }).click();
   await page.evaluate((state) => window.testSetAccess(state), member('technician'));
@@ -106,4 +107,31 @@ test('backup restore rejects pending or foreign records without partially import
   expect(result.foreignError).toContain('another organisation');
   expect(result.records).toHaveLength(1);
   expect(result.fresh).toBeUndefined();
+});
+
+test('technician mobile view shows only assigned plants and keeps metadata inside the record', async ({ page, context }, testInfo) => {
+  await page.evaluate((record) => commissioningStore.saveRecord({ ...record, localOrganisationId: '11111111-1111-4111-8111-111111111111', assignedTechnicianId: null }), legacyRecord);
+  await page.evaluate((state) => window.testSetAccess(state), member('technician'));
+  await expect(page.locator('#recordsTitle')).toHaveText('My commissioning');
+  await expect(page.locator('.record-card')).toHaveCount(0);
+  await page.getByRole('button', { name: 'New plant record', exact: true }).click();
+  await page.locator('#customer').fill('Riverside Centre');
+  await page.locator('#plantName').fill('Hot water plant');
+  await page.locator('#address').fill('12 Example Street, Sydney');
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.locator('#syncStatus')).toHaveText('1 pending');
+  await page.getByRole('button', { name: 'Back to records' }).click();
+  await expect(page.locator('.record-card')).toHaveCount(1);
+  await expect(page.locator('.record-card')).toContainText('Pending upload');
+  await expect(page.locator('.record-card')).not.toContainText('Last saved');
+  await expect(page.locator('.record-card').getByRole('button', { name: 'Print', exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('technician-mobile.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.locator('#recordMetadata summary').click();
+  await expect(page.locator('#recordSavedTime')).toContainText('Last saved:');
+  await expect(page.getByRole('button', { name: 'Print record', exact: true })).toBeVisible();
+  const records = await page.evaluate(() => commissioningStore.listRecords());
+  expect(records.find((record) => record.job?.siteName === 'Riverside Centre').assignedTechnicianId).toBe('user-1');
 });

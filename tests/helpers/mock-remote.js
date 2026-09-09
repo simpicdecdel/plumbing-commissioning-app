@@ -29,6 +29,7 @@ window.commissioningRemote = (() => {
       return state;
     },
     sendPasswordResetEmail: async () => undefined,
+    listTechnicians: async () => [{ user_id: 'user-1', display_name: 'Test technician' }, { user_id: 'user-2', display_name: 'Other technician' }],
     listRecords: async () => {
       if (localStorage.getItem('mock-hide-server-records') === 'true') return [];
       const staleRows = localStorage.getItem('mock-stale-server-response');

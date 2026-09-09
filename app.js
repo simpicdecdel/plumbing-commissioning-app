@@ -27,6 +27,7 @@ let access = null;
 let renderVersion = 0;
 let uploadRecords = [];
 let uploadBackupStarted = false;
+let openedRecord = null;
 
 function requireAccess(administrator = false) {
   if (!access || (administrator && access.role !== 'administrator')) throw new Error(administrator ? 'Administrator access required.' : 'Sign in to access records.');
@@ -35,7 +36,12 @@ function requireAccess(administrator = false) {
 function draftScope() { const current = requireAccess(); return `${current.organisationId}:${current.userId}`; }
 async function visibleRecords() {
   if (!access) return [];
-  return store.listRecords(access.organisationId, access.role === 'administrator');
+  const current = { ...access };
+  const records = await store.listRecords(current.organisationId, current.role === 'administrator');
+  if (current.role === 'administrator') return records;
+  const entries = await Promise.all(records.map((record) => store.getSyncEntry(record.id)));
+  return records.filter((record, index) => !entries[index]?.accessRevoked
+    && (entries[index]?.assignedTechnicianId ?? record.assignedTechnicianId) === current.userId);
 }
 async function accessibleRecord(id) { return (await visibleRecords()).find((record) => record.id === id); }
 function showOperationError(error) { storageNotice.textContent = error.message; storageNotice.classList.add('notice-error'); }
@@ -47,15 +53,17 @@ function showAuthMessage(message = '', isError = false) {
 
 function renderAuthState(authState = {}) {
   const oldAccess = access;
+  const departingDraft = oldAccess && !formView.hidden ? collectFormData('Draft') : null;
   const previousAccess = JSON.stringify(access);
   access = authState.user && authState.membership?.organisationId && !authState.recovery
     ? { userId: authState.user.id, organisationId: authState.membership.organisationId, role: authState.membership.role } : null;
   if (previousAccess !== JSON.stringify(access)) {
     clearTimeout(autosaveTimer);
     if (oldAccess && !formView.hidden) {
-      store.saveDraft(collectFormData('Draft'), `${oldAccess.organisationId}:${oldAccess.userId}`).catch(reportStorageError);
+      store.saveDraft(departingDraft, `${oldAccess.organisationId}:${oldAccess.userId}`).catch(reportStorageError);
     }
     form.reset(); unitsList.innerHTML = '';
+    openedRecord = null;
     formView.hidden = true; recordsView.hidden = false;
     conflictDialog.close(); document.querySelector('#uploadDialog').close(); document.querySelector('#deletedDialog').close();
     document.querySelector('#deletedList').replaceChildren();
@@ -65,6 +73,14 @@ function renderAuthState(authState = {}) {
   for (const selector of ['#newRecordButton', '[data-view="form"]', '#exportButton', '#recordSearch']) document.querySelector(selector).disabled = !access;
   document.querySelector('#restoreButton').hidden = access?.role !== 'administrator';
   document.querySelector('#deletedButton').hidden = access?.role !== 'administrator';
+  const technicianView = access?.role === 'technician';
+  document.body.classList.toggle('technician-view', technicianView);
+  (technicianView ? accountPanel : document.querySelector('#recordsTools')).append(document.querySelector('#exportButton'));
+  document.querySelector('#recordsTitle').textContent = technicianView ? 'My commissioning' : 'Commissioning records';
+  document.querySelector('#newRecordButton').textContent = technicianView ? 'New plant record' : 'New record';
+  document.querySelector('#assignmentField').hidden = !access;
+  document.querySelector('#assignmentSelectLabel').hidden = technicianView;
+  document.querySelector('#selfAssignment').hidden = !technicianView;
   const signedIn = Boolean(authState.user);
   const recovery = Boolean(authState.recovery);
   document.querySelector('#accountButton').textContent = signedIn ? (authState.membership?.role === 'administrator' ? 'Administrator' : 'Account') : 'Sign in';
@@ -78,7 +94,7 @@ function renderAuthState(authState = {}) {
     : signedIn ? 'No organisation membership found.' : '';
   document.querySelector('#syncButton').hidden = !signedIn || !authState.membership;
   storageNotice.textContent = signedIn && authState.membership
-    ? 'New records sync to your organisation. Use Upload local records for earlier records after saving a backup.'
+    ? technicianView ? 'Only plants assigned to you appear here. New plants are assigned to you automatically.' : 'New records sync to your organisation. Use Upload local records for earlier records after saving a backup.'
     : 'Sign in to access your organisation’s records. Pending work stays on this device.';
   sync?.setAuthState(authState).catch((error) => console.error('Could not initialise synchronisation.', error));
   renderRecords().catch(showOperationError);
@@ -127,6 +143,7 @@ function collectUnits() {
 function collectFormData(status = 'Draft') {
   return {
     id: document.querySelector('#recordId').value || makeId(), schemaVersion: 2, status,
+    assignedTechnicianId: access?.role === 'technician' ? access.userId : (document.querySelector('#assignedTechnician').value || null),
     job: {
       siteName: value('customer'), reference: value('jobReference'), address: value('address'),
       commissioningDate: value('commissioningDate'), technician: value('technician')
@@ -185,6 +202,7 @@ function setField(id, fieldValue) {
 }
 
 function populateForm(record = blankRecord()) {
+  openedRecord = record;
   form.reset(); unitsList.innerHTML = '';
   document.querySelector('#recordId').value = record.id || makeId();
   const job = record.job || {}; const plant = record.plant || {}; const checks = record.installationChecks || {};
@@ -203,7 +221,53 @@ function populateForm(record = blankRecord()) {
   Object.entries(fieldValues).forEach(([id, fieldValue]) => setField(id, fieldValue));
   (record.units?.length ? record.units : [{}]).forEach(addUnit);
   document.querySelector('#formTitle').textContent = record.status ? 'Edit commissioning' : 'New commissioning';
+  document.querySelector('#completeRecordButton').textContent = access?.role === 'technician' && record.status === 'Completed' ? 'Save changes' : 'Complete record';
   saveStatus.textContent = record.status ? `Editing ${record.status.toLowerCase()}.` : 'Drafts save on this device.';
+  document.querySelector('#recordSavedTime').textContent = record.status ? `Last saved: ${formatDateTime(record.updatedAt)}` : 'Not yet saved';
+  document.querySelector('#recordTechnicianName').textContent = `Technician: ${record.job?.technician || 'Not recorded'}`;
+  document.querySelector('#recordSyncTime').textContent = 'Not synced';
+  store.getSyncEntry(record.id).then((entry) => {
+    if (openedRecord === record) document.querySelector('#recordSyncTime').textContent = `Sync on this device: ${describeSyncEntry(entry).time}`;
+  });
+  updateAssignmentChoices(record);
+  updateTechnicianSections();
+}
+
+function updateTechnicianSections() {
+  for (const fieldset of form.querySelectorAll('fieldset')) {
+    const wrapper = fieldset.parentElement;
+    if (access?.role !== 'technician') {
+      if (wrapper.classList.contains('technician-section')) { wrapper.replaceWith(fieldset); fieldset.querySelector('legend').hidden = false; }
+      continue;
+    }
+    if (wrapper.classList.contains('technician-section')) continue;
+    const details = document.createElement('details'); details.className = 'technician-section';
+    const legend = fieldset.querySelector('legend');
+    const summary = document.createElement('summary'); summary.textContent = legend.textContent;
+    details.open = ['Job details', 'Plant', 'Units'].includes(legend.textContent.trim());
+    fieldset.before(details); details.append(summary, fieldset); legend.hidden = true;
+  }
+}
+
+async function updateAssignmentChoices(record) {
+  const select = document.querySelector('#assignedTechnician');
+  const current = JSON.stringify(access);
+  select.replaceChildren(new Option('Unassigned', ''));
+  if (record.assignedTechnicianId) select.add(new Option('Current assigned technician', record.assignedTechnicianId));
+  select.value = record.assignedTechnicianId || '';
+  select.disabled = true;
+  const message = document.querySelector('#assignmentMessage');
+  message.textContent = navigator.onLine ? '' : 'Connect to change assignment.';
+  if (access?.role !== 'administrator' || !navigator.onLine || !remote.listTechnicians) return;
+  try {
+    const technicians = await remote.listTechnicians(access.organisationId);
+    if (openedRecord !== record || current !== JSON.stringify(access)) return;
+    select.replaceChildren(new Option('Unassigned', ''));
+    for (const person of technicians) select.add(new Option(person.display_name, person.user_id));
+    if (record.assignedTechnicianId && !technicians.some((person) => person.user_id === record.assignedTechnicianId)) select.add(new Option('Previous technician (no longer available)', record.assignedTechnicianId));
+    select.value = record.assignedTechnicianId || ''; select.disabled = false;
+    message.textContent = technicians.length ? '' : 'No technician accounts in this organisation yet.';
+  } catch { if (openedRecord === record) message.textContent = 'Could not load technicians. Current assignment retained.'; }
 }
 
 async function saveRecord(record) {
@@ -328,8 +392,17 @@ async function renderRecords() {
     const savedAt = formatDateTime(record.updatedAt);
     const syncDetails = describeSyncEntry(syncEntry);
     const faults = (record.units || []).filter((unit) => unit.status === 'Fault / exception').length;
+    const outcome = record.results?.outcome; const badgeClass = record.status === 'Draft' ? 'draft' : outcome === 'Failed' ? 'failed' : outcome === 'Passed with actions' ? 'attention' : '';
     const card = document.createElement('article'); card.className = 'record-card';
-    const outcome = record.results?.outcome; const badgeClass = record.status === 'Draft' ? 'draft' : outcome === 'Failed' ? 'failed' : '';
+    if (access.role === 'technician') {
+      card.innerHTML = `<div><h3>${escapeHtml(record.job?.siteName || 'Unnamed site')}</h3>
+        <p class="plant-summary">${escapeHtml(record.plant?.name || 'Plant not set')}${record.plant?.location ? ` · ${escapeHtml(record.plant.location)}` : ''}</p>
+        <p class="record-meta">${escapeHtml(record.job?.address || 'Address not set')}</p><p class="record-meta">${record.units?.length || 0} unit${record.units?.length === 1 ? '' : 's'}</p></div>
+        <div class="technician-card-actions"><span class="badge ${badgeClass}">${escapeHtml(record.status === 'Draft' ? 'Draft' : outcome || 'Completed')}</span>
+        <button class="button button-secondary" type="button" data-action="edit" data-id="${escapeHtml(record.id)}">${record.status === 'Draft' ? 'Continue' : 'Open'}</button></div>
+        ${syncEntry && (syncEntry.state !== 'synced' || syncEntry.error) ? `<div class="technician-sync-alert">${escapeHtml(syncDetails.status)}${syncEntry.state === 'conflict' ? ` <button class="button button-secondary" type="button" data-action="resolve" data-id="${escapeHtml(record.id)}">Resolve</button>` : ''}</div>` : ''}`;
+      recordList.append(card); continue;
+    }
     card.innerHTML = `
       <div class="record-job-details">
         <h3>${escapeHtml(record.job?.siteName || 'Unnamed site')}</h3>
@@ -338,9 +411,10 @@ async function renderRecords() {
         <span class="badge ${badgeClass}">${escapeHtml(record.status === 'Draft' ? 'Draft' : outcome || 'Completed')}</span>
       </div>
       <div class="record-detail-column">
-        <p class="record-column-label">Saved by technician</p>
+        <p class="record-column-label">Technician</p>
         <p class="record-column-value">${escapeHtml(record.job?.technician || 'Not recorded')}</p>
-        <p class="record-meta">${escapeHtml(savedAt)}</p>
+        <p class="record-meta">Last saved: ${escapeHtml(savedAt)}</p>
+        <p class="record-meta">${record.assignedTechnicianId ? 'Assigned' : 'Unassigned'}</p>
       </div>
       <div class="record-detail-column">
         <p class="record-column-label">Sync details</p>
@@ -369,7 +443,11 @@ async function openNewRecord() {
   const current = JSON.stringify(requireAccess());
   const draft = await store.getDraft(draftScope(), access.role === 'administrator');
   if (current !== JSON.stringify(access)) return;
-  populateForm(draft || blankRecord());
+  const saved = draft && await store.getRecord(draft.id);
+  if (saved && !await accessibleRecord(draft.id)) {
+    showOperationError(new Error('An earlier draft is retained for Administrator review because its assignment changed.'));
+    populateForm(blankRecord());
+  } else populateForm(draft || blankRecord());
   await showView('form');
 }
 
@@ -417,6 +495,17 @@ document.querySelector('#backButton').addEventListener('click', () => showView('
 document.querySelector('#addUnitButton').addEventListener('click', () => { addUnit(); scheduleAutosave(); });
 searchInput.addEventListener('input', renderRecords);
 form.addEventListener('input', scheduleAutosave);
+form.addEventListener('invalid', (event) => { const section = event.target.closest('details'); if (section) section.open = true; }, true);
+document.querySelector('#printRecordButton').addEventListener('click', () => {
+  if (!access) return;
+  window.print();
+});
+let printSectionStates = [];
+window.addEventListener('beforeprint', () => {
+  printSectionStates = [...form.querySelectorAll('details')].map((section) => [section, section.open]);
+  for (const [section] of printSectionStates) section.open = true;
+});
+window.addEventListener('afterprint', () => { for (const [section, open] of printSectionStates) section.open = open; });
 
 document.querySelector('#saveDraftButton').addEventListener('click', async () => {
   try {
@@ -588,7 +677,16 @@ window.addEventListener('online', () => { updateNetworkStatus(); sync?.syncNow()
 window.addEventListener('offline', () => { updateNetworkStatus(); updateSyncStatus({ ...sync?.getStatus?.(), state: 'offline' }); });
 window.addEventListener('commissioning-sync-updated', async (event) => {
   updateSyncStatus(event.detail.status);
-  if (event.detail.changes?.downloaded || event.detail.changes?.removed) await renderRecords();
+  if (event.detail.changes?.downloaded || event.detail.changes?.removed) {
+    if (openedRecord && !formView.hidden && await store.getRecord(openedRecord.id) && !await accessibleRecord(openedRecord.id)) {
+      clearTimeout(autosaveTimer);
+      if (access) await store.saveDraft(collectFormData('Draft'), draftScope());
+      form.reset(); unitsList.replaceChildren(); openedRecord = null; conflictDialog.close();
+      await showView('records');
+      showOperationError(new Error('This plant is no longer assigned to you. Unsent work is retained on this device for Administrator review.'));
+    }
+    await renderRecords();
+  }
 });
 document.querySelector('#syncButton').addEventListener('click', () => sync?.syncNow());
 document.querySelector('#closeConflictButton').addEventListener('click', () => conflictDialog.close());
