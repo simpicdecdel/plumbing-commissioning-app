@@ -1,0 +1,4 @@
+[functions.admin-console]
+# The handler verifies every user token with Auth and checks database permissions.
+# Supports asymmetric signing keys rather than the gateway's legacy JWT check.
+verify_jwt = false

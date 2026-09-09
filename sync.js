@@ -11,7 +11,7 @@
 
   function context() {
     const organisationId = authState.membership?.organisationId;
-    return authState.user && organisationId && !authState.recovery ? {
+    return authState.user && organisationId && !authState.recovery && !authState.passwordChangeRequired && !authState.disabled ? {
       organisationId,
       userId: authState.user.id,
       role: authState.membership.role

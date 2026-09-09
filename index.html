@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.7-plant-assignments">
+  <link rel="stylesheet" href="styles.css?v=0.4.8-admin-console">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,11 +17,12 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.4.7">v0.4.7</span>
+        <span class="app-version" aria-label="Application version 0.4.8">v0.4.8</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
       <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
       <button id="accountButton" class="button button-secondary" type="button">Sign in</button>
+      <a id="adminConsoleLink" class="button button-secondary" href="admin.html" hidden>Admin console</a>
       <button id="installButton" class="button button-secondary" type="button" hidden>Install app</button>
     </div>
   </header>
@@ -273,11 +274,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js?v=0.4.7-plant-assignments" defer></script>
-  <script src="storage.js?v=0.4.7-plant-assignments" defer></script>
-  <script src="config.js?v=0.4.7-plant-assignments" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.7-plant-assignments" defer></script>
-  <script src="sync.js?v=0.4.7-plant-assignments" defer></script>
-  <script src="app.js?v=0.4.7-plant-assignments" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.8-admin-console" defer></script>
+  <script src="storage.js?v=0.4.8-admin-console" defer></script>
+  <script src="config.js?v=0.4.8-admin-console" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.8-admin-console" defer></script>
+  <script src="sync.js?v=0.4.8-admin-console" defer></script>
+  <script src="app.js?v=0.4.8-admin-console" defer></script>
 </body>
 </html>
