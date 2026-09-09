@@ -59,10 +59,11 @@ button { cursor: pointer; }
 .section-heading { margin-bottom: 1.25rem; }
 .section-heading h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); }
 .section-heading .eyebrow { color: var(--brand); }
-.toolbar { padding: .9rem; border-radius: 10px; background: #eef4f3; }
+.toolbar { flex-wrap: wrap; padding: .9rem; border-radius: 10px; background: #eef4f3; }
 .search-field { flex: 1; }
 
 .button { min-height: 42px; border: 1px solid transparent; border-radius: 8px; padding: .55rem .9rem; font-weight: 750; }
+.button:disabled { opacity: .5; cursor: not-allowed; }
 .button-primary { background: var(--brand); color: #fff; }
 .button-primary:hover { background: var(--brand-dark); }
 .button-secondary { border-color: var(--line); background: white; color: var(--brand); }
@@ -124,6 +125,8 @@ label { color: #334447; font-size: .9rem; font-weight: 700; }
 
 .auth-dialog { width: min(30rem, calc(100% - 2rem)); border: 0; border-radius: 14px; padding: 1.25rem; color: var(--ink); box-shadow: 0 24px 70px rgb(0 0 0 / 28%); }
 .auth-dialog::backdrop { background: rgb(8 28 31 / 62%); }
+.backup-confirmation { display: flex; align-items: center; gap: .55rem; margin: 1rem 0; }
+.backup-confirmation input { width: 1.15rem; height: 1.15rem; margin: 0; accent-color: var(--brand); flex: none; }
 .auth-dialog-header, .auth-actions { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
 .auth-dialog-header { margin-bottom: 1rem; }
 .auth-dialog-header h2 { margin: 0; color: var(--brand); }

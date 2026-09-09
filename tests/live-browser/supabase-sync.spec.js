@@ -164,3 +164,59 @@ test('offline edits upload on reconnect and after reopening the page', async ({ 
   await expect(observerPage.locator('.record-card').filter({ hasText: initialSite })).toHaveCount(0);
   await expect(observerPage.locator('.record-card').filter({ hasText: reconnectEdit })).toHaveCount(0);
 });
+
+test('administrator deletion and restore propagate to technician without page reload', async ({ browser }) => {
+  const site = `Deletion recovery ${fixture.runId}`;
+  const adminPage = await (await createLiveContext(browser)).newPage();
+  await adminPage.goto('/'); await signIn(adminPage, 'administrator');
+  await completeRecord(adminPage, site);
+  const technicianPage = await (await createLiveContext(browser)).newPage();
+  await technicianPage.goto('/'); await signIn(technicianPage, 'technician');
+  const card = (page) => page.locator('.record-card').filter({ hasText: site });
+  await expect(card(technicianPage)).toBeVisible();
+  await expect(card(technicianPage).getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
+  adminPage.once('dialog', (dialog) => dialog.accept());
+  await card(adminPage).getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(card(adminPage)).toHaveCount(0);
+  await technicianPage.getByRole('button', { name: 'Sync now' }).click();
+  await expect(card(technicianPage)).toHaveCount(0);
+  await adminPage.getByRole('button', { name: 'Deleted records', exact: true }).click();
+  const deleted = adminPage.locator('#deletedList p').filter({ hasText: site });
+  await expect(deleted).toBeVisible();
+  adminPage.once('dialog', (dialog) => dialog.accept());
+  await deleted.getByRole('button', { name: 'Restore', exact: true }).click();
+  await expect(card(adminPage)).toBeVisible();
+  await technicianPage.getByRole('button', { name: 'Sync now' }).click();
+  await expect(card(technicianPage)).toBeVisible();
+});
+
+test('expired session with invalid refresh token preserves offline work through re-login', async ({ browser }) => {
+  const context = await createLiveContext(browser);
+  let page = await context.newPage();
+  await page.goto('/'); await signIn(page, 'administrator');
+  const site = `Expiry original ${fixture.runId}`;
+  const edited = `Expiry pending ${fixture.runId}`;
+  await completeRecord(page, site);
+  await page.locator('.record-card').filter({ hasText: site }).getByRole('button', { name: 'Open' }).click();
+  await context.setOffline(true);
+  await replaceSiteName(page, edited);
+  await page.getByRole('button', { name: 'Complete record' }).click();
+  await expect(page.locator('#syncStatus')).toHaveText('1 pending');
+  // Expire only this disposable test browser session; no production credentials are used.
+  await page.evaluate(() => {
+    const key = Object.keys(localStorage).find((name) => /^sb-.*-auth-token$/.test(name));
+    const session = JSON.parse(localStorage.getItem(key));
+    session.expires_at = 1;
+    session.refresh_token = 'invalid-test-refresh-token';
+    localStorage.setItem(key, JSON.stringify(session));
+  });
+  await page.close(); await context.setOffline(false);
+  page = await context.newPage(); await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(page.locator('.record-card')).toHaveCount(0);
+  await signIn(page, 'administrator');
+  await expect(page.locator('.record-card').filter({ hasText: edited })).toBeVisible();
+  const result = await fixture.admin.from('commissioning_records').select('payload,revision')
+    .eq('organisation_id', fixture.organisationIds[0]).eq('payload->job->>siteName', edited);
+  assert.equal(result.error, null); assert.equal(result.data.length, 1); assert.equal(result.data[0].revision, 2);
+});

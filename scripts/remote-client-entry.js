@@ -6,6 +6,8 @@ const listeners = new Set();
 let recoveryMode = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
 let state = Object.freeze({ user: null, membership: null, recovery: recoveryMode });
 let client;
+const membershipKey = `commissioning-membership:${config.supabaseUrl || 'disabled'}`;
+let resolving = 0;
 
 function isRecovery() { return recoveryMode; }
 function notify(nextState) {
@@ -39,12 +41,26 @@ async function loadMembership(user) {
 }
 
 async function resolveState(session, recovery = isRecovery()) {
+  const request = ++resolving;
   const user = session?.user || null;
   let membership = null;
   if (user) {
-    try { membership = await loadMembership(user); }
+    try {
+      if (!navigator.onLine) {
+        const cached = JSON.parse(localStorage.getItem(membershipKey) || 'null');
+        if (cached?.userId === user.id) membership = cached.membership;
+      } else {
+        membership = await loadMembership(user);
+        if (request === resolving) {
+          if (membership) localStorage.setItem(membershipKey, JSON.stringify({ userId: user.id, membership }));
+          else localStorage.removeItem(membershipKey);
+        }
+      }
+    }
     catch (error) { console.error('Could not load organisation membership.', error); }
   }
+  if (request !== resolving) return state;
+  if (!user) localStorage.removeItem(membershipKey);
   return notify({ user, membership, recovery });
 }
 
@@ -97,12 +113,21 @@ if (config.enabled) {
       if (error) throw error;
       return resolveState(null, false);
     },
+    async refreshAccess() {
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+      return resolveState(data.session);
+    },
     async listRecords(organisationId) {
       const { data, error } = await client.from('commissioning_records')
         .select('id, payload, revision, updated_at, deleted_at')
         .eq('organisation_id', organisationId)
         .order('updated_at', { ascending: true });
-      return requireData(data, error) || [];
+      const records = requireData(data, error) || [];
+      const deletions = await client.rpc('list_commissioning_deletions', { target_organisation_id: organisationId });
+      const markers = requireData(deletions.data, deletions.error) || [];
+      const ids = new Set(records.map((record) => record.id));
+      return [...records, ...markers.filter((record) => !ids.has(record.id))];
     },
     async getRecord(organisationId, remoteId) {
       const { data, error } = await client.from('commissioning_records')
@@ -110,7 +135,10 @@ if (config.enabled) {
         .eq('organisation_id', organisationId)
         .eq('id', remoteId)
         .maybeSingle();
-      return requireData(data, error);
+      const record = requireData(data, error);
+      if (record) return record;
+      const deletions = await client.rpc('list_commissioning_deletions', { target_organisation_id: organisationId });
+      return (requireData(deletions.data, deletions.error) || []).find((marker) => marker.id === remoteId) || null;
     },
     async saveRecord({ remoteId, organisationId, record, expectedRevision }) {
       const { data, error } = await client.rpc('save_commissioning_record', {
@@ -126,6 +154,12 @@ if (config.enabled) {
         record_id: remoteId,
         target_organisation_id: organisationId,
         expected_revision: expectedRevision
+      });
+      return firstRow(requireData(data, error));
+    },
+    async restoreRecord({ remoteId, organisationId, expectedRevision }) {
+      const { data, error } = await client.rpc('restore_commissioning_record', {
+        record_id: remoteId, target_organisation_id: organisationId, expected_revision: expectedRevision
       });
       return firstRow(requireData(data, error));
     }

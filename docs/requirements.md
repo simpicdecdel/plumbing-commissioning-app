@@ -2,9 +2,9 @@
 
 Baseline: Current repository state
 
-Last updated: 20 August 2026
+Last updated: 9 September 2026
 
-Status: Authentication foundation with local-only commissioning records
+Status: Local-first team synchronisation with authenticated access and record recovery
 
 ## 1. Purpose
 
@@ -164,7 +164,7 @@ Priorities use Must, Should, Could and Later.
   - Records on the device that are absent from the backup are retained.
   - The application asks for confirmation and reports added and replaced record counts.
   - Invalid, unsupported or duplicate-ID backups do not change stored records.
-- Current gap: Backup restore currently changes only local IndexedDB records and is available without an authentication or administrator check.
+- Implementation: Restore requires a signed-in Administrator. The full file is validated before an atomic local merge; foreign-organisation IDs and pending/conflicted/deleted records are rejected. Replacements of synced records enter the revision-checked queue. Added records remain local until the explicit backup-and-confirmation upload workflow.
 
 ### REQ-F-011: Install the application
 
@@ -234,7 +234,7 @@ Priorities use Must, Should, Could and Later.
   - Membership is looked up for the authenticated user.
   - The account view shows the organisation name and `technician` or `administrator` role when present.
   - A signed-in user without a membership sees a clear message.
-- Implementation state: Implemented in the authentication client and account UI. This display does not yet govern local record operations.
+- Implementation state: Implemented in the authentication client and account UI. Membership and role also govern local record screens and administrator-only operations. Offline access uses the user's last verified membership until reconnecting.
 
 ## 5. Record data requirements
 
@@ -370,7 +370,7 @@ Priorities use Must, Should, Could and Later.
   - Both roles can view, create and edit active records for their organisation.
   - Only Administrators can delete, restore or administer access.
   - Anonymous and cross-organisation access is denied by database row-level security.
-- Implementation state: Authentication and membership display are implemented. The migration is deployed, and production tables, RLS enablement, policies, function grants, anonymous read denial and administrator membership were verified manually on 20 August 2026. On 3 September 2026, the opt-in live suite passed against the separate test project for technician and administrator permissions, cross-organisation isolation and immediate access removal after membership revocation. This test-project result does not verify production configuration. Local record access, delete and backup restore are not gated by authentication or role.
+- Implementation state: The application requires a signed-in member before displaying or editing records. Cached records are filtered by organisation; drafts are scoped to user and organisation. Only Administrators see unassigned legacy records, delete controls, backup restore and central restore. Signing out clears the screen while retaining pending work. The server enforces membership and roles independently. Offline use relies on the last verified membership for the persisted user; revocation cannot be detected while disconnected and is rechecked on reconnect. These are application controls, not encryption of IndexedDB against someone controlling the device or developer tools.
 
 ### REQ-SEC-003: Central storage and synchronisation
 
@@ -386,7 +386,7 @@ Priorities use Must, Should, Could and Later.
   - A user can compare the retained technician and central versions, then explicitly choose which one to keep.
   - Existing local records are uploaded only after explicit user confirmation and a successful backup export.
   - Server deletion is reversible until a separately accepted retention rule permits permanent deletion.
-- Implementation state: The database tables and revision-checked functions are defined in the initial migration. The client implements authenticated remote reads and writes, an IndexedDB change queue, reconnect retry, cross-device download, remote delete propagation, safe stale-revision conflict reporting and explicit central-or-technician conflict resolution. The normal browser tests use a mocked shared service. On 3 September 2026, five live API tests and one live iPhone/WebKit test passed against the separate test project, covering the permission matrix, revision conflicts, soft deletion and restore, cross-browser synchronisation and conflict resolution. Live offline retry remains unverified. Existing local records are not uploaded merely by signing in and still require the accepted backup-and-confirmation workflow.
+- Implementation state: Revision-checked sync, durable offline queueing and explicit conflict resolution are implemented. Physical iPhone close/reopen while offline and subsequent cross-device upload passed on 4 September 2026. The v0.4.5 fix excludes database responses from service-worker caches; all five intended records were subsequently confirmed centrally and on both devices. The upload dialog downloads a backup and requires acknowledgement that it was saved before queueing local records. Administrators can restore centrally deleted records using the server revision. A member-only deletion feed returns IDs and revisions without deleted payloads so technician devices can remove stale copies. See docs/release-verification.md for current evidence and limits.
 
 ### REQ-SEC-004: Public repository hygiene
 
@@ -436,7 +436,7 @@ The following capabilities are outside the current MVP until separately accepted
 6. How long must records be retained?
 7. Should several plant records share a reusable site or job record?
 8. Which regulatory sources must the application enforce or reference?
-9. What verified release threshold must be met before sign-in gates local records and remote record storage is enabled?
+9. What additional field acceptance checks are required beyond the current automated access and synchronisation tests and physical-device evidence in `docs/release-verification.md`?
 
 ## 10. Change process
 

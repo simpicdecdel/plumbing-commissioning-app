@@ -1,15 +1,15 @@
-const CACHE_NAME = 'plumbing-commissioning-v0.4.5-fresh-sync';
+const CACHE_NAME = 'plumbing-commissioning-v0.4.6-team-access';
 const CONFIG_CACHE_NAME = `${CACHE_NAME}-public-config`;
-const CONFIG_URL = './config.js?v=0.4.5-fresh-sync';
+const CONFIG_URL = './config.js?v=0.4.6-team-access';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=0.4.5-fresh-sync',
-  './vendor/dexie.min.js?v=0.4.5-fresh-sync',
-  './vendor/remote-client.min.js?v=0.4.5-fresh-sync',
-  './storage.js?v=0.4.5-fresh-sync',
-  './sync.js?v=0.4.5-fresh-sync',
-  './app.js?v=0.4.5-fresh-sync',
+  './styles.css?v=0.4.6-team-access',
+  './vendor/dexie.min.js?v=0.4.6-team-access',
+  './vendor/remote-client.min.js?v=0.4.6-team-access',
+  './storage.js?v=0.4.6-team-access',
+  './sync.js?v=0.4.6-team-access',
+  './app.js?v=0.4.6-team-access',
   './manifest.webmanifest',
   './icons/app-icon.svg',
   './icons/app-icon-192.png',

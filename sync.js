@@ -6,12 +6,14 @@
   const listeners = new Set();
   let authState = {};
   let activeSync = null;
+  let accessVersion = 0;
   let status = Object.freeze({ state: 'local', pending: 0, conflicts: 0, errors: 0, synced: 0 });
 
   function context() {
     const organisationId = authState.membership?.organisationId;
-    return authState.user && organisationId ? {
+    return authState.user && organisationId && !authState.recovery ? {
       organisationId,
+      userId: authState.user.id,
       role: authState.membership.role
     } : null;
   }
@@ -40,7 +42,13 @@
   }
 
   async function performSync() {
+    if (navigator.onLine && remote.refreshAccess) {
+      try { await remote.refreshAccess(); }
+      catch { return refreshStatus('error'); }
+    }
     const current = context();
+    const version = accessVersion;
+    const stillAuthorised = () => version === accessVersion && Boolean(context());
     if (!current) return refreshStatus('local');
     if (!navigator.onLine) return refreshStatus('offline');
     emit({ state: 'syncing' });
@@ -48,6 +56,7 @@
     const pendingEntries = await store.listPendingSync(current.organisationId);
     let failed = false;
     for (const entry of pendingEntries) {
+      if (!stillAuthorised()) return refreshStatus();
       try {
         if (entry.state === 'pending-save') {
           const saved = await remote.saveRecord({
@@ -56,13 +65,16 @@
             record: entry.pendingRecord,
             expectedRevision: entry.revision || 0
           });
+          if (!stillAuthorised()) return refreshStatus();
           await store.markSyncSaved(entry.recordId, saved);
         } else if (entry.state === 'pending-delete') {
+          if (current.role !== 'administrator') throw new Error('Administrator access required to delete records.');
           const deleted = await remote.deleteRecord({
             remoteId: entry.remoteId,
             organisationId: current.organisationId,
             expectedRevision: entry.revision
           });
+          if (!stillAuthorised()) return refreshStatus();
           await store.markSyncDeleted(entry.recordId, deleted);
         }
       } catch (error) {
@@ -70,6 +82,7 @@
           let serverRecord = null;
           try { serverRecord = await remote.getRecord(current.organisationId, entry.remoteId); }
           catch (readError) { console.error('Could not load the conflicting server record.', readError); }
+          if (!stillAuthorised()) return refreshStatus();
           await store.markSyncConflict(entry.recordId, serverRecord, error.message);
           continue;
         }
@@ -84,6 +97,7 @@
     if (!failed) {
       try {
         const remoteRecords = await remote.listRecords(current.organisationId);
+        if (!stillAuthorised()) return refreshStatus();
         changes = await store.applyRemoteRecords(current.organisationId, remoteRecords);
       } catch (error) {
         failed = true;
@@ -112,7 +126,9 @@
     onChange(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     async setAuthState(nextAuthState = {}) {
       const previousOrganisationId = context()?.organisationId;
+      const previousIdentity = JSON.stringify(context());
       authState = nextAuthState;
+      if (previousIdentity !== JSON.stringify(context())) accessVersion++;
       const current = context();
       if (!current) return refreshStatus('local');
       await refreshStatus(previousOrganisationId === current.organisationId ? null : 'pending');
@@ -120,7 +136,7 @@
     },
     async queueSave(record) {
       const current = context();
-      if (!current) return { queued: false };
+      if (!current) throw new Error('Sign in to save records.');
       const entry = await store.queueSyncSave(record, current.organisationId);
       await refreshStatus(navigator.onLine ? 'pending' : 'offline');
       if (navigator.onLine) await syncAfterCurrent();
@@ -128,15 +144,30 @@
     },
     async queueDelete(recordId) {
       const current = context();
-      if (!current) return { queued: false };
-      const existing = await store.getSyncEntry(recordId);
-      if (existing?.revision > 0 && current.role !== 'administrator') {
-        throw new Error('Only an Administrator can delete a synchronised record.');
+      if (!current) throw new Error('Sign in to delete records.');
+      if (current.role !== 'administrator') {
+        throw new Error('Only an Administrator can delete a record.');
       }
       const result = await store.queueSyncDelete(recordId, current.organisationId);
       await refreshStatus(navigator.onLine ? 'pending' : 'offline');
       if (result.queued && navigator.onLine) await syncAfterCurrent();
       return result;
+    },
+    async listDeleted() {
+      const current = context();
+      if (!current || current.role !== 'administrator') throw new Error('Administrator access required.');
+      if (!navigator.onLine) throw new Error('Connect to view deleted records.');
+      return (await remote.listRecords(current.organisationId)).filter((record) => record.deleted_at && record.payload);
+    },
+    async restoreDeleted(record) {
+      const current = context();
+      if (!current || current.role !== 'administrator') throw new Error('Administrator access required.');
+      if (!navigator.onLine) throw new Error('Connect to restore deleted records.');
+      const version = accessVersion;
+      const saved = await remote.restoreRecord({ remoteId: record.id, organisationId: current.organisationId, expectedRevision: record.revision });
+      if (version !== accessVersion) return;
+      await store.applyRemoteRecords(current.organisationId, [saved]);
+      await syncAfterCurrent();
     },
     async resolveConflict(recordId, resolution) {
       const current = context();

@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { mockRemoteClient } from '../helpers/mock-remote.js';
+test.use({ serviceWorkers: 'block' });
 
 async function openNewRecord(page) {
   await page.getByRole('button', { name: 'New record' }).click();
@@ -16,8 +18,11 @@ async function fillRequiredRecord(page, overrides = {}) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('mock-authenticated', 'true'));
+  await page.route('**/vendor/remote-client.min.js*', (route) => route.fulfill({ contentType: 'text/javascript', body: mockRemoteClient }));
   await page.goto('/');
   await expect(page.locator('#networkStatus')).toHaveText('Online');
+  await expect(page.getByRole('button', { name: 'Administrator' })).toBeVisible();
 });
 
 test('completes, persists and searches a commissioning record', async ({ page }) => {
