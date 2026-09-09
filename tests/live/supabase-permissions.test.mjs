@@ -90,6 +90,12 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
       const technicianRows = await technician.client.from('commissioning_records').select('id').eq('id', recordId);
       assert.equal(technicianRows.error, null);
       assert.deepEqual(technicianRows.data, []);
+      const markers = await technician.client.rpc('list_commissioning_deletions', { target_organisation_id: primaryOrganisationId });
+      assert.equal(markers.error, null);
+      assert.equal(markers.data.find((row) => row.id === recordId)?.revision, deletedRevision);
+      assert.ok(markers.data.every((row) => !('payload' in row)));
+      const isolatedMarkers = await outsider.client.rpc('list_commissioning_deletions', { target_organisation_id: primaryOrganisationId });
+      assert.equal(isolatedMarkers.error?.code, '42501');
 
       const restored = await administrator.client.rpc('restore_commissioning_record', {
         record_id: recordId, target_organisation_id: primaryOrganisationId, expected_revision: deletedRevision
@@ -117,6 +123,8 @@ test('live Supabase roles, isolation, revisions and lifecycle', { timeout: 120_0
         .eq('organisation_id', primaryOrganisationId);
       assert.equal(recordsAfterRevocation.error, null);
       assert.deepEqual(recordsAfterRevocation.data, []);
+      const markersAfterRevocation = await technician.client.rpc('list_commissioning_deletions', { target_organisation_id: primaryOrganisationId });
+      assert.equal(markersAfterRevocation.error?.code, '42501');
 
       const writeAfterRevocation = await technician.client.rpc('save_commissioning_record', {
         record_id: randomUUID(),

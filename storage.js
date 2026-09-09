@@ -136,9 +136,15 @@
     async initialise() {
       return ready;
     },
-    async listRecords() {
+    async listRecords(organisationId, includeUnassigned = false) {
       await ready;
-      return database.records.orderBy('updatedAt').reverse().toArray();
+      const records = await database.records.orderBy('updatedAt').reverse().toArray();
+      if (!organisationId) return records;
+      const entries = new Map((await database.sync.toArray()).map((entry) => [entry.recordId, entry]));
+      return records.filter((record) => {
+        const owner = entries.get(record.id)?.organisationId || record.localOrganisationId;
+        return owner === organisationId || (!owner && includeUnassigned);
+      });
     },
     async getRecord(id) {
       await ready;
@@ -166,17 +172,26 @@
       await ready;
       return database.records.delete(id);
     },
-    async getDraft() {
+    async getDraft(scope = DRAFT_KEY, claimUnassigned = false) {
       await ready;
-      return (await database.drafts.get(DRAFT_KEY))?.record || null;
+      return database.transaction('rw', database.drafts, async () => {
+        const scoped = await database.drafts.get(scope);
+        if (scoped) return scoped.record;
+        if (!claimUnassigned || scope === DRAFT_KEY) return null;
+        const legacy = await database.drafts.get(DRAFT_KEY);
+        if (!legacy) return null;
+        await database.drafts.put({ ...legacy, key: scope });
+        await database.drafts.delete(DRAFT_KEY);
+        return legacy.record;
+      });
     },
-    async saveDraft(record) {
+    async saveDraft(record, scope = DRAFT_KEY) {
       await ready;
-      return database.drafts.put({ key: DRAFT_KEY, record, updatedAt: new Date().toISOString() });
+      return database.drafts.put({ key: scope, record, updatedAt: new Date().toISOString() });
     },
-    async clearDraft() {
+    async clearDraft(scope = DRAFT_KEY) {
       await ready;
-      return database.drafts.delete(DRAFT_KEY);
+      return database.drafts.delete(scope);
     },
     async getMigrationSummary() {
       await ready;
@@ -193,6 +208,8 @@
     async queueSyncSave(record, organisationId) {
       await ready;
       const existing = await database.sync.get(record.id);
+      if (record.localOrganisationId && record.localOrganisationId !== organisationId) throw new Error('This record belongs to another organisation.');
+      if (existing && existing.organisationId !== organisationId) throw new Error('This record belongs to another organisation.');
       const entry = {
         recordId: record.id,
         remoteId: existing?.remoteId || makeUuid(),
@@ -361,6 +378,10 @@
           if (existing?.revision && remoteRecord.revision < existing.revision) continue;
 
           const recordId = existing?.recordId || remoteRecord.payload?.id || remoteRecord.id;
+          const collision = await database.sync.get(recordId);
+          const localRecord = await database.records.get(recordId);
+          if ((collision && collision.organisationId !== organisationId)
+            || (localRecord?.localOrganisationId && localRecord.localOrganisationId !== organisationId)) throw new Error('Record ID belongs to another organisation.');
           if (remoteRecord.deleted_at) {
             if (await database.records.get(recordId)) {
               await database.records.delete(recordId);
@@ -395,6 +416,27 @@
         }
 
         return { downloaded, removed };
+      });
+    },
+    async restoreForOrganisation(records, organisationId) {
+      await ready;
+      return database.transaction('rw', database.records, database.sync, async () => {
+        let added = 0;
+        let replaced = 0;
+        for (const record of records) {
+          const previous = await database.records.get(record.id);
+          const entry = await database.sync.get(record.id);
+          if ((entry && entry.organisationId !== organisationId)
+            || (previous?.localOrganisationId && previous.localOrganisationId !== organisationId)) {
+            throw new Error('The backup contains a record belonging to another organisation.');
+          }
+          if (entry && entry.state !== 'synced') throw new Error('Resolve pending changes or deleted records before restoring this backup.');
+          const restored = { ...copy(record), localOrganisationId: organisationId };
+          await database.records.put(restored);
+          if (entry) await database.sync.put({ ...entry, state: 'pending-save', pendingRecord: restored, error: null });
+          if (previous) replaced++; else added++;
+        }
+        return { restored: records.length, added, replaced };
       });
     },
     async getSyncSummary(organisationId) {

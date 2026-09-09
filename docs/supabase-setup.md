@@ -1,6 +1,6 @@
 # Supabase multi-user foundation
 
-This document covers the authentication, database and initial local-first synchronisation implementation for the accepted multi-user design. The browser client is connected and the production public configuration is present. Live record synchronisation still requires the verification described below.
+This document covers authentication, database access and local-first synchronisation for the accepted multi-user design. The browser client is connected and production public configuration is present. See `release-verification.md` for dated evidence and the remaining physical-device checks.
 
 ## Current implementation boundary
 
@@ -20,13 +20,14 @@ Implemented in this repository:
 - Explicit conflict resolution using either the retained technician version or the current central version.
 - Automated browser coverage against a mocked shared service.
 
-Not yet implemented or verified:
+Access and recovery workflow:
 
-- Role enforcement for local-only delete or backup restore.
-- User-confirmed upload of records that existed locally before synchronisation was introduced.
-- A live two-device verification of offline retry, conflict resolution and soft deletion. Cross-origin upload and download were verified manually on 21 August 2026.
+- Sign-in and organisation filtering gate local record display and actions; only Administrators can delete or restore.
+- Earlier local records require backup download and confirmation before upload. Unassigned records are visible only to an Administrator for review.
+- The central restore UI uses the existing revision-checked restore function.
+- Apply `20260909000000_member_deletion_feed.sql` before deploying v0.4.6. Its member-only RPC returns deletion IDs and revisions without payloads, allowing technicians to remove cached copies without access to deleted customer content.
 
-Signing in does not restrict access to records held in the browser on that device. Existing local records are deliberately not uploaded merely by signing in.
+Signing out hides local records and preserves pending work. Existing local records are deliberately not uploaded merely by signing in. Offline membership is cached for the persisted user and revalidated when online; local IndexedDB is not encrypted by this mechanism. See `release-verification.md` for observed behaviour and test limits.
 
 ## Production shape
 
@@ -97,14 +98,13 @@ pnpm build:remote
 
 ## Verification status and remaining requirements before live use
 
-Static repository tests check that the migration contains the intended controls. The normal authentication and synchronisation UI tests use a mocked remote client. On 3 September 2026, the opt-in suite passed against the separate Supabase test project: five live API tests covered anonymous denial, technician and administrator permissions, cross-organisation isolation, revision conflicts, administrator-only soft deletion and restore, and immediate access removal after membership revocation; one live iPhone/WebKit test covered real authentication, cross-browser synchronisation and conflict resolution. Cleanup then found zero tagged users and zero tagged organisations remaining. This test-project result does not verify production configuration.
+Static repository tests check that migrations contain the intended controls. The normal authentication and synchronisation UI tests use a mocked remote client. Live API and browser tests separately exercise the dedicated test project. Current results, including deletion propagation, expired-session recovery and cleanup, are recorded in `release-verification.md`. Test-project results do not independently verify production configuration.
 
-Before treating the build as ready for live customer records, verification is still required for:
+Before widening field use, retain these release checks:
 
-- Live offline retry.
-- Session expiry.
-- User-confirmed upload of existing local records without duplication.
-- Production configuration and the final release threshold in `docs/requirements.md`.
+- Repeat the critical offline restart and reconnect flows on a physical iPhone after access-control changes.
+- Confirm that the downloaded backup can be located on the actual device before confirming legacy upload.
+- Agree the field acceptance threshold and commissioning content in `docs/requirements.md`.
 
 Run the current static schema checks with `pnpm test:schema` and the full local suite with `pnpm test`.
 

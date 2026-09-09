@@ -23,6 +23,22 @@ const conflictMessage = document.querySelector('#conflictMessage');
 const useCentralButton = document.querySelector('#useCentralButton');
 const keepTechnicianButton = document.querySelector('#keepTechnicianButton');
 let conflictRecordId = null;
+let access = null;
+let renderVersion = 0;
+let uploadRecords = [];
+let uploadBackupStarted = false;
+
+function requireAccess(administrator = false) {
+  if (!access || (administrator && access.role !== 'administrator')) throw new Error(administrator ? 'Administrator access required.' : 'Sign in to access records.');
+  return { ...access };
+}
+function draftScope() { const current = requireAccess(); return `${current.organisationId}:${current.userId}`; }
+async function visibleRecords() {
+  if (!access) return [];
+  return store.listRecords(access.organisationId, access.role === 'administrator');
+}
+async function accessibleRecord(id) { return (await visibleRecords()).find((record) => record.id === id); }
+function showOperationError(error) { storageNotice.textContent = error.message; storageNotice.classList.add('notice-error'); }
 
 function showAuthMessage(message = '', isError = false) {
   authMessage.textContent = message;
@@ -30,6 +46,25 @@ function showAuthMessage(message = '', isError = false) {
 }
 
 function renderAuthState(authState = {}) {
+  const oldAccess = access;
+  const previousAccess = JSON.stringify(access);
+  access = authState.user && authState.membership?.organisationId && !authState.recovery
+    ? { userId: authState.user.id, organisationId: authState.membership.organisationId, role: authState.membership.role } : null;
+  if (previousAccess !== JSON.stringify(access)) {
+    clearTimeout(autosaveTimer);
+    if (oldAccess && !formView.hidden) {
+      store.saveDraft(collectFormData('Draft'), `${oldAccess.organisationId}:${oldAccess.userId}`).catch(reportStorageError);
+    }
+    form.reset(); unitsList.innerHTML = '';
+    formView.hidden = true; recordsView.hidden = false;
+    conflictDialog.close(); document.querySelector('#uploadDialog').close(); document.querySelector('#deletedDialog').close();
+    document.querySelector('#deletedList').replaceChildren();
+    uploadRecords = []; conflictRecordId = null;
+    recordList.replaceChildren();
+  }
+  for (const selector of ['#newRecordButton', '[data-view="form"]', '#exportButton', '#recordSearch']) document.querySelector(selector).disabled = !access;
+  document.querySelector('#restoreButton').hidden = access?.role !== 'administrator';
+  document.querySelector('#deletedButton').hidden = access?.role !== 'administrator';
   const signedIn = Boolean(authState.user);
   const recovery = Boolean(authState.recovery);
   document.querySelector('#accountButton').textContent = signedIn ? (authState.membership?.role === 'administrator' ? 'Administrator' : 'Account') : 'Sign in';
@@ -43,14 +78,15 @@ function renderAuthState(authState = {}) {
     : signedIn ? 'No organisation membership found.' : '';
   document.querySelector('#syncButton').hidden = !signedIn || !authState.membership;
   storageNotice.textContent = signedIn && authState.membership
-    ? 'New or edited records sync to your organisation. Existing device records remain local until you edit them.'
-    : 'Records stay in IndexedDB on this device unless you sign in and save or edit them.';
+    ? 'New records sync to your organisation. Use Upload local records for earlier records after saving a backup.'
+    : 'Sign in to access your organisation’s records. Pending work stays on this device.';
   sync?.setAuthState(authState).catch((error) => console.error('Could not initialise synchronisation.', error));
+  renderRecords().catch(showOperationError);
 }
 
 async function initialiseAuth() {
   if (!remote?.enabled) {
-    await sync?.setAuthState({});
+    renderAuthState({});
     return;
   }
   remote.onStateChange(renderAuthState);
@@ -171,10 +207,17 @@ function populateForm(record = blankRecord()) {
 }
 
 async function saveRecord(record) {
+  const current = requireAccess();
+  const existing = await store.getRecord(record.id);
+  if (existing && !await accessibleRecord(record.id)) throw new Error('This record is not available to this account.');
+  const existingSync = await store.getSyncEntry(record.id);
+  if (JSON.stringify(current) !== JSON.stringify(access)) throw new Error('Account changed. Reopen the record.');
   clearTimeout(autosaveTimer);
+  record.localOrganisationId = current.organisationId;
   await store.saveRecord(record);
-  await store.clearDraft();
-  await sync?.queueSave(record);
+  await store.clearDraft(draftScope());
+  // Earlier records need the explicit backup-and-confirmation upload flow.
+  if (!existing || existingSync) await sync?.queueSave(record);
 }
 
 function escapeHtml(valueToEscape = '') {
@@ -213,7 +256,9 @@ function conflictVersionDetails(record, savedAt) {
 }
 
 async function openConflict(record) {
+  const current = JSON.stringify(requireAccess());
   const entry = await store.getSyncEntry(record.id);
+  if (current !== JSON.stringify(access)) return;
   if (!entry || entry.state !== 'conflict') {
     storageNotice.textContent = 'This record no longer has a conflict to resolve.';
     await renderRecords();
@@ -262,15 +307,21 @@ async function resolveOpenConflict(resolution) {
 }
 
 async function renderRecords() {
+  const version = ++renderVersion;
   const query = searchInput.value.toLowerCase().trim();
-  const records = (await store.listRecords()).filter((record) => {
+  const allRecords = await visibleRecords();
+  const records = allRecords.filter((record) => {
     const unitValues = (record.units || []).flatMap((unit) => [unit.label, unit.manufacturer, unit.model, unit.serialNumber]);
     return [record.job?.siteName, record.job?.address, record.job?.reference, record.plant?.name, record.plant?.location, ...unitValues]
       .some((fieldValue) => String(fieldValue || '').toLowerCase().includes(query));
   });
   const syncEntries = await Promise.all(records.map((record) => store.getSyncEntry(record.id)));
+  if (version !== renderVersion) return;
+  document.querySelector('#uploadLocalButton').hidden = !access || !(await Promise.all(allRecords.map((record) => store.getSyncEntry(record.id)))).some((entry) => !entry);
+  if (version !== renderVersion) return;
   const syncEntriesByRecordId = new Map(syncEntries.filter(Boolean).map((entry) => [entry.recordId, entry]));
   recordList.innerHTML = '';
+  if (!access) return;
   if (!records.length) { recordList.append(document.querySelector('#emptyStateTemplate').content.cloneNode(true)); return; }
   for (const record of records) {
     const syncEntry = syncEntriesByRecordId.get(record.id);
@@ -300,20 +351,27 @@ async function renderRecords() {
         ${syncEntry?.state === 'conflict' ? `<button class="button button-primary" type="button" data-action="resolve" data-id="${escapeHtml(record.id)}">Resolve</button>` : ''}
         <button class="button button-secondary" type="button" data-action="edit" data-id="${escapeHtml(record.id)}">Open</button>
         <button class="button button-secondary" type="button" data-action="print" data-id="${escapeHtml(record.id)}">Print</button>
-        <button class="button button-danger" type="button" data-action="delete" data-id="${escapeHtml(record.id)}">Delete</button>
+        ${access.role === 'administrator' ? `<button class="button button-danger" type="button" data-action="delete" data-id="${escapeHtml(record.id)}">Delete</button>` : ''}
       </div>`;
     recordList.append(card);
   }
 }
 
 async function showView(name) {
+  if (name === 'form') requireAccess();
   const showForm = name === 'form'; recordsView.hidden = showForm; formView.hidden = !showForm;
   document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.view === name));
   if (!showForm) await renderRecords();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function openNewRecord() { populateForm((await store.getDraft()) || blankRecord()); await showView('form'); }
+async function openNewRecord() {
+  const current = JSON.stringify(requireAccess());
+  const draft = await store.getDraft(draftScope(), access.role === 'administrator');
+  if (current !== JSON.stringify(access)) return;
+  populateForm(draft || blankRecord());
+  await showView('form');
+}
 
 function updateNetworkStatus() {
   const status = document.querySelector('#networkStatus'); status.textContent = navigator.onLine ? 'Online' : 'Offline ready';
@@ -341,9 +399,12 @@ function reportStorageError(error) {
 }
 
 function scheduleAutosave() {
+  if (!access) return;
+  const scope = draftScope();
+  const record = collectFormData('Draft');
   clearTimeout(autosaveTimer); saveStatus.classList.remove('error'); saveStatus.textContent = 'Saving draft…';
   autosaveTimer = setTimeout(async () => {
-    try { await store.saveDraft(collectFormData('Draft')); saveStatus.textContent = 'Draft saved on this device.'; }
+    try { if (!access || draftScope() !== scope) return; await store.saveDraft(record, scope); saveStatus.textContent = 'Draft saved on this device.'; }
     catch (error) { reportStorageError(error); }
   }, 450);
 }
@@ -372,14 +433,17 @@ form.addEventListener('submit', async (event) => {
 
 recordList.addEventListener('click', async (event) => {
   const button = event.target.closest('button[data-action]'); if (!button) return;
-  const record = await store.getRecord(button.dataset.id); if (!record) return;
+  const current = JSON.stringify(access);
+  const record = await accessibleRecord(button.dataset.id); if (!record) return;
+  if (current !== JSON.stringify(access)) return;
   if (button.dataset.action === 'resolve') { await openConflict(record); return; }
   if (button.dataset.action === 'edit' || button.dataset.action === 'print') {
     populateForm(record); await showView('form');
     if (button.dataset.action === 'print') setTimeout(() => window.print(), 100);
   }
-  if (button.dataset.action === 'delete' && confirm(`Delete the record for ${record.job?.siteName || 'this site'}? This cannot be undone.`)) {
+  if (button.dataset.action === 'delete' && confirm(`Delete the record for ${record.job?.siteName || 'this site'}? Synced records can be restored from Deleted records. Local-only records require a backup to recover.`)) {
     try {
+      requireAccess(true);
       await sync?.queueDelete(record.id);
       await store.deleteRecord(record.id);
       await renderRecords();
@@ -390,11 +454,19 @@ recordList.addEventListener('click', async (event) => {
   }
 });
 
-document.querySelector('#exportButton').addEventListener('click', async () => {
-  const payload = { exportedAt: new Date().toISOString(), schemaVersion: 2, records: await store.listRecords() };
+function downloadBackup(records) {
+  const payload = { exportedAt: new Date().toISOString(), schemaVersion: 2, records };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
   link.download = `plumbing-commissioning-backup-${today()}.json`; link.click(); URL.revokeObjectURL(link.href);
+}
+document.querySelector('#exportButton').addEventListener('click', async () => {
+  try {
+    const current = JSON.stringify(requireAccess());
+    const records = await visibleRecords();
+    if (current !== JSON.stringify(access)) return;
+    downloadBackup(records);
+  } catch (error) { showOperationError(error); }
 });
 
 function validateBackup(payload) {
@@ -417,28 +489,100 @@ function validateBackup(payload) {
   return payload.records;
 }
 
-document.querySelector('#restoreButton').addEventListener('click', () => restoreFile.click());
+document.querySelector('#restoreButton').addEventListener('click', () => { try { requireAccess(true); restoreFile.click(); } catch (error) { showOperationError(error); } });
 restoreFile.addEventListener('change', async () => {
   const file = restoreFile.files?.[0];
   restoreFile.value = '';
   if (!file) return;
   storageNotice.classList.remove('notice-error');
   try {
+    const current = requireAccess(true);
     const records = validateBackup(JSON.parse(await file.text()));
+    if (JSON.stringify(current) !== JSON.stringify(access)) throw new Error('Account changed. Select the backup again.');
     if (!records.length) {
       storageNotice.textContent = 'The backup is valid but contains no records.';
       return;
     }
     if (!confirm(`Restore ${records.length} record${records.length === 1 ? '' : 's'}? Existing records with the same IDs will be replaced.`)) return;
-    const result = await store.restoreRecords(records);
+    const result = await store.restoreForOrganisation(records, current.organisationId);
     storageNotice.textContent = `Backup restored: ${result.added} added, ${result.replaced} replaced.`;
     await renderRecords();
+    await sync.syncNow();
   } catch (error) {
     console.error(error);
     storageNotice.textContent = `Backup not restored: ${error instanceof SyntaxError ? 'The file is not valid JSON.' : error.message}`;
     storageNotice.classList.add('notice-error');
   }
 });
+
+document.querySelector('#uploadLocalButton').addEventListener('click', async () => {
+  try {
+    const current = JSON.stringify(requireAccess());
+    const records = await visibleRecords();
+    const candidates = [];
+    for (const record of records) if (!await store.getSyncEntry(record.id)) candidates.push(record);
+    if (current !== JSON.stringify(access)) return;
+    uploadRecords = candidates;
+    document.querySelector('#uploadSummary').textContent = `${uploadRecords.length} local record(s) will be uploaded to ${remote.getState().membership.organisationName || 'your organisation'}.`;
+    uploadBackupStarted = false;
+    document.querySelector('#uploadBackupConfirmed').checked = false;
+    document.querySelector('#confirmUploadButton').disabled = true;
+    document.querySelector('#uploadDialog').showModal();
+  } catch (error) { showOperationError(error); }
+});
+document.querySelector('#uploadBackupButton').addEventListener('click', () => {
+  requireAccess(); downloadBackup(uploadRecords); uploadBackupStarted = true;
+  document.querySelector('#confirmUploadButton').disabled = !document.querySelector('#uploadBackupConfirmed').checked;
+});
+document.querySelector('#uploadBackupConfirmed').addEventListener('change', (event) => {
+  document.querySelector('#confirmUploadButton').disabled = !uploadBackupStarted || !event.target.checked;
+});
+document.querySelector('#cancelUploadButton').addEventListener('click', () => document.querySelector('#uploadDialog').close());
+document.querySelector('#confirmUploadButton').addEventListener('click', async () => {
+  try {
+    const current = requireAccess();
+    if (!uploadBackupStarted || !document.querySelector('#uploadBackupConfirmed').checked) return;
+    document.querySelector('#confirmUploadButton').disabled = true;
+    for (const record of uploadRecords) {
+      if (JSON.stringify(current) !== JSON.stringify(access)) throw new Error('Account changed. Upload stopped.');
+      const latest = await accessibleRecord(record.id);
+      if (!latest || JSON.stringify(latest) !== JSON.stringify(record)) throw new Error('A local record changed. Download a fresh backup before uploading.');
+      const entry = await store.getSyncEntry(record.id);
+      if (JSON.stringify(current) !== JSON.stringify(access)) throw new Error('Account changed. Upload stopped.');
+      if (!entry) await store.queueSyncSave(record, current.organisationId);
+    }
+    document.querySelector('#uploadDialog').close();
+    await sync.syncNow(); await renderRecords();
+  } catch (error) { showOperationError(error); document.querySelector('#uploadDialog').close(); }
+});
+async function showDeletedRecords() {
+  const current = requireAccess(true);
+  document.querySelector('#deletedMessage').textContent = 'Loading…';
+  document.querySelector('#deletedList').replaceChildren();
+  document.querySelector('#deletedDialog').showModal();
+  const records = await sync.listDeleted();
+  if (JSON.stringify(current) !== JSON.stringify(access)) return;
+  document.querySelector('#deletedMessage').textContent = records.length ? 'Restore a record to make it available to your team again.' : 'No deleted records.';
+  for (const record of records) {
+    const row = document.createElement('p');
+    row.append(document.createTextNode(`${record.payload.job?.siteName || 'Unnamed site'} · ${formatDateTime(record.deleted_at)} `));
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'button button-secondary'; button.textContent = 'Restore';
+    button.addEventListener('click', async () => {
+      try {
+        requireAccess(true);
+        if (JSON.stringify(current) !== JSON.stringify(access)) return;
+        if (!confirm(`Restore ${record.payload.job?.siteName || 'this record'} for your organisation?`)) return;
+        button.disabled = true;
+        await sync.restoreDeleted(record); await renderRecords();
+        document.querySelector('#deletedDialog').close();
+      } catch (error) { document.querySelector('#deletedMessage').textContent = error.message; button.disabled = false; }
+    });
+    row.append(button); document.querySelector('#deletedList').append(row);
+  }
+}
+document.querySelector('#deletedButton').addEventListener('click', () => showDeletedRecords().catch((error) => { document.querySelector('#deletedMessage').textContent = error.message; }));
+document.querySelector('#closeDeletedButton').addEventListener('click', () => document.querySelector('#deletedDialog').close());
 
 window.addEventListener('online', () => { updateNetworkStatus(); sync?.syncNow(); });
 window.addEventListener('offline', () => { updateNetworkStatus(); updateSyncStatus({ ...sync?.getStatus?.(), state: 'offline' }); });

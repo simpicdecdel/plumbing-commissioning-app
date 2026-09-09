@@ -7,7 +7,7 @@
   <meta name="description" content="Offline plumbing plant commissioning records for field technicians.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.4.5-fresh-sync">
+  <link rel="stylesheet" href="styles.css?v=0.4.6-team-access">
   <title>Plumbing Commissioning</title>
 </head>
 <body>
@@ -17,7 +17,7 @@
       <h1>Plumbing Commissioning</h1>
     </div>
     <div class="header-actions">
-        <span class="app-version" aria-label="Application version 0.4.5">v0.4.5</span>
+        <span class="app-version" aria-label="Application version 0.4.6">v0.4.6</span>
       <span id="networkStatus" class="status-pill" aria-live="polite">Checking…</span>
       <span id="syncStatus" class="status-pill sync-status" aria-live="polite">Local only</span>
       <button id="syncButton" class="button button-secondary button-small" type="button" hidden>Sync now</button>
@@ -47,11 +47,29 @@
         </label>
         <button id="exportButton" class="button button-secondary" type="button">Export backup</button>
         <button id="restoreButton" class="button button-secondary" type="button">Restore backup</button>
+        <button id="uploadLocalButton" class="button button-secondary" type="button" hidden>Upload local records</button>
+        <button id="deletedButton" class="button button-secondary" type="button" hidden>Deleted records</button>
         <input id="restoreFile" class="sr-only" type="file" accept="application/json,.json">
       </div>
-      <p id="storageNotice" class="notice">Records stay in IndexedDB on this device unless you sign in and save or edit them.</p>
+      <p id="storageNotice" class="notice">Sign in to access your organisation's records.</p>
       <div id="recordList" class="record-list"></div>
     </section>
+
+    <dialog id="uploadDialog" class="auth-dialog" aria-labelledby="uploadTitle">
+      <h2 id="uploadTitle">Upload local records</h2>
+      <p id="uploadSummary"></p>
+      <p>Save the backup before confirming. These records will become available to your organisation.</p>
+      <button id="uploadBackupButton" class="button button-secondary" type="button">Download backup</button>
+      <label class="backup-confirmation"><input id="uploadBackupConfirmed" type="checkbox"> I have saved the backup</label>
+      <button id="confirmUploadButton" class="button button-primary" type="button" disabled>Confirm upload</button>
+      <button id="cancelUploadButton" class="button button-secondary" type="button">Cancel</button>
+    </dialog>
+    <dialog id="deletedDialog" class="auth-dialog" aria-labelledby="deletedTitle">
+      <h2 id="deletedTitle">Deleted records</h2>
+      <p id="deletedMessage" role="status"></p>
+      <div id="deletedList"></div>
+      <button id="closeDeletedButton" class="button button-secondary" type="button">Close</button>
+    </dialog>
 
     <section id="formView" class="view" hidden>
       <div class="section-heading">
@@ -245,11 +263,11 @@
     </article>
   </template>
 
-  <script src="vendor/dexie.min.js?v=0.4.5-fresh-sync" defer></script>
-  <script src="storage.js?v=0.4.5-fresh-sync" defer></script>
-  <script src="config.js?v=0.4.5-fresh-sync" defer></script>
-  <script src="vendor/remote-client.min.js?v=0.4.5-fresh-sync" defer></script>
-  <script src="sync.js?v=0.4.5-fresh-sync" defer></script>
-  <script src="app.js?v=0.4.5-fresh-sync" defer></script>
+  <script src="vendor/dexie.min.js?v=0.4.6-team-access" defer></script>
+  <script src="storage.js?v=0.4.6-team-access" defer></script>
+  <script src="config.js?v=0.4.6-team-access" defer></script>
+  <script src="vendor/remote-client.min.js?v=0.4.6-team-access" defer></script>
+  <script src="sync.js?v=0.4.6-team-access" defer></script>
+  <script src="app.js?v=0.4.6-team-access" defer></script>
 </body>
 </html>

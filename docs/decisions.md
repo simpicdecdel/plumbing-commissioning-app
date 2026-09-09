@@ -81,17 +81,17 @@ This log records material product decisions and their reasons. Changing an accep
 - Decision: Use a managed Supabase project in Sydney for invite-only email authentication, central commissioning records and database-enforced organisation roles. Retain IndexedDB as the offline working store. Use revision-checked writes and explicit conflict resolution rather than last-write-wins updates.
 - Reason: Multiple technicians and office users need shared records without making one business-managed server the production availability and security boundary.
 - Alternatives considered: Continue with device-only records; self-host the central services on OfficeDev; use Firebase.
-- Risks and trade-offs: The service creates an external operating cost and vendor dependency. Conflict resolution, confirmed migration of earlier local records and live integration tests still require work.
+- Risks and trade-offs: The service creates an external operating cost and vendor dependency. Offline membership revocation takes effect on reconnect. Physical-device release checks remain necessary alongside automated integration tests.
 - Review trigger: Cost, data residency, availability or integration constraints become unacceptable, or the business gains the capacity to operate and secure the full service itself.
 - Replaces: The remaining local-only aspect of DEC-007. The IndexedDB storage boundary remains accepted.
 
-### Implementation status at 21 August 2026
+### Implementation status updated 9 September 2026
 
 - Implemented: authentication client, sign-in, password reset and recovery, sign-out, membership display, public production configuration, deployed initial database migration, static security tests, local-first synchronisation, offline queueing, cross-device download, safe conflict reporting and explicit central-or-technician conflict resolution.
-- Not implemented: confirmed local-to-remote migration, role enforcement for local-only delete or backup restore, and server-side restore UI.
+- Implemented in v0.4.6: backup-confirmed local upload, sign-in and organisation filtering for local records, Administrator-only local delete and backup restore, and central restore UI. Pending work remains stored through sign-out and expired-session recovery. Offline access uses the persisted user's last verified membership; it cannot detect revocation until reconnecting. Local device encryption is not provided by these application controls.
 - Manually verified on 20 August 2026: production tables, RLS enablement, policies, security-definer function grants, anonymous read denial, administrator membership and live administrator sign-in.
 - Manually verified on 21 August 2026: a live Supabase record created in one browser origin downloaded into a fresh origin.
-- Verified on 3 September 2026 against the separate Supabase test project: five live API tests passed for authentication, role permissions, cross-organisation isolation, revision conflicts, administrator-only soft deletion and restore, and immediate access removal after membership revocation; one live iPhone/WebKit test passed for cross-browser synchronisation and conflict resolution. This does not verify production configuration. Live offline retry remains unverified.
+- Verified on 3 September 2026 against the separate Supabase test project: five live API tests passed for authentication, role permissions, cross-organisation isolation, revision conflicts, administrator-only soft deletion and restore, and immediate access removal after membership revocation; one live iPhone/WebKit test passed for cross-browser synchronisation and conflict resolution. Physical offline restart/reconnect was verified on 4 September. v0.4.5 resolved stale database responses and both devices showed all five intended active records. Current evidence is recorded in docs/release-verification.md.
 
 ## Decision entry template
 

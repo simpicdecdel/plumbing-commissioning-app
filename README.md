@@ -30,7 +30,9 @@ The current PWA can:
 - Resolve a revision conflict by reviewing both versions and deliberately choosing the central or technician version.
 - Show when each record was saved by the plumber and when the current device last synchronised it with the central database.
 
-New records and edits are synchronised only while an organisation member is signed in. Records that already existed on a device before this update remain local until the user edits them; they are not uploaded merely by signing in. Local records and backup restore remain available without signing in, so authentication still does not gate the local record store. A synchronised server record can be deleted only by an administrator, while a local-only record can still be deleted locally.
+An organisation member must be signed in to view or edit records and export backups. New records synchronise automatically. Earlier local records require **Upload local records**, a downloaded backup and confirmation before upload; signing in or editing them does not upload them. Administrators can see unassigned legacy records, delete records, restore backups and restore centrally deleted records. Technicians see their organisation's assigned records and cannot delete or restore them.
+
+Sign-out hides records and retains pending work. Offline access uses the signed-in user's last verified membership, which is checked again on reconnect. These application controls do not encrypt the browser's local database. See [release verification](docs/release-verification.md) for automated and physical-device evidence.
 
 ## Confirmed behaviour
 
@@ -121,7 +123,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.4.5 mobile header and overflow, the emulated iPhone user agent and viewport, PWA assets, service-worker control and offline public-config recovery, IndexedDB persistence, autosave and backup restoration, invalid-backup rejection, search, unit fault validation, authentication and the production-shaped Supabase recovery callback, cross-device synchronisation, offline queueing, revision conflicts and both conflict-resolution choices. Authentication and synchronisation browser tests otherwise use a mocked remote client. Schema tests inspect the migration and public configuration statically. They do not test the deployed Supabase project. GitHub Actions runs the suite for pull requests and changes to `main`.
+The browser suite checks the v0.4.6 mobile header and overflow, PWA assets, service-worker control and fresh database responses, IndexedDB persistence, autosave, backup restoration, invalid-backup rejection, search, unit fault validation, password recovery, cross-device synchronisation, offline queueing and both conflict-resolution choices. It also checks local sign-in and organisation gates, technician restrictions, pending work after re-login and backup-confirmed local upload. Authentication and synchronisation tests use a mocked remote client except the recovery-callback test. Schema tests inspect migrations and public configuration and exercise service-worker caching. The normal suite does not access Supabase. GitHub Actions runs it for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 
@@ -160,7 +162,7 @@ Account UI in app.js
       -> Supabase Authentication and organisation membership lookup
 ```
 
-The repository contains the accepted managed Supabase design, a deployed initial database migration, active authentication UI, local-first synchronisation and production public configuration. On 20 August 2026, the production project structure, RLS enablement, policy and function grants, administrator membership and a live administrator sign-in were verified manually. On 3 September 2026, the opt-in live suite passed against the separate test project: five API tests covered the technician, administrator, revoked-member and cross-organisation permission matrix, and one iPhone/WebKit test covered real authentication, cross-browser synchronisation and conflict resolution. This test-project result does not verify production configuration. Authentication does not gate local record access or backup restore.
+The app uses Supabase authentication, organisation roles and revision-checked central storage with IndexedDB as the offline working store. Local screens enforce sign-in, organisation scope and administrator-only deletion and restore. The deletion feed supplies record IDs and revisions to members without exposing deleted payloads to technicians. See [release verification](docs/release-verification.md) for current checks and remaining physical-device limitations.
 
 The synchronisation boundary is:
 
