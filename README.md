@@ -96,7 +96,7 @@ To add users, use the local [user provisioning tool](docs/user-provisioning.md).
 
 The [desktop admin console](docs/admin-console.md) adds organisation statistics and central record inspection for administrators, plus user management and activity history for explicitly granted super administrators. Its database migration and Edge Function must be deployed before the v0.4.8 client.
 
-The production migration, single-operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Physical acceptance on 10 September exposed stale offline access after a Technician account had been deactivated online. The v0.4.9 candidate fails closed when cached controls are absent or restricted; deployment and a physical-iPhone retest remain outstanding. See [release verification](docs/release-verification.md).
+The production migration, single-operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Physical acceptance on 10 September exposed stale offline access after a Technician account had been deactivated online. v0.4.9 now fails closed when cached controls are absent or restricted. It was deployed on 10 September and passed the repeated physical-iPhone offline deactivation check. See [release verification](docs/release-verification.md).
 
 ## Automated iPhone-style testing
 

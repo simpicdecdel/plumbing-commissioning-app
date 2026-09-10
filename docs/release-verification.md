@@ -1,11 +1,11 @@
 # Release verification
 
-## v0.4.9 candidate: offline deactivation cache hardening
+## v0.4.9: offline deactivation cache hardening
 
 - Physical-iPhone acceptance on 10 September 2026 found that a Technician account was blocked immediately after online deactivation, but an offline close and reopen restored the older cached Technician membership and allowed the new-record form to open. No record was created or saved. Reconnecting and syncing restored the deactivated block.
-- The client had stored membership and account restrictions separately. The v0.4.9 candidate now removes the older cached membership before every successful online access-control refresh, restores it only after a fresh unrestricted membership check, and requires matching verified controls before accepting a cached membership offline.
+- The client had stored membership and account restrictions separately. v0.4.9 removes the older cached membership before every successful online access-control refresh, restores it only after a fresh unrestricted membership check, and requires matching verified controls before accepting a cached membership offline.
 - The service-worker namespace and browser asset versions were changed so a deployed client cannot retain the v0.4.8 remote-access bundle. Four focused cache-policy tests pass, including deactivation followed by offline restart and an interrupted membership refresh.
-- Local verification passes 27 schema/security tests and 31 iPhone/WebKit browser tests. The isolated live API suites and six live browser tests also pass, including immediate session revocation, reactivation, forced password change and offline reassignment; cleanup found zero tagged users or organisations. Deployment and a repeat of the physical-iPhone deactivation/restart check remain required before the fix is accepted.
+- Local verification passed 27 schema/security tests and 31 iPhone/WebKit browser tests. The isolated live API suites and six live browser tests also passed, including immediate session revocation, reactivation, forced password change and offline reassignment; cleanup found zero tagged users or organisations. PR #22 passed CI, merged as `9d719263dd6444b0636044d6e6274de058971de7`, and GitHub Pages deployed that commit on 10 September 2026. A cache-busted production check returned v0.4.9, the new service-worker namespace and a browser bundle matching the reviewed local SHA-256. On the physical iPhone, the deactivated Technician account then remained blocked after a full offline close and reopen; record controls stayed disabled and a new plant record could not be opened.
 
 ## v0.4.8: desktop admin console
 
