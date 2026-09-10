@@ -1,5 +1,12 @@
 # Release verification
 
+## v0.4.9 candidate: offline deactivation cache hardening
+
+- Physical-iPhone acceptance on 10 September 2026 found that a Technician account was blocked immediately after online deactivation, but an offline close and reopen restored the older cached Technician membership and allowed the new-record form to open. No record was created or saved. Reconnecting and syncing restored the deactivated block.
+- The client had stored membership and account restrictions separately. The v0.4.9 candidate now removes the older cached membership before every successful online access-control refresh, restores it only after a fresh unrestricted membership check, and requires matching verified controls before accepting a cached membership offline.
+- The service-worker namespace and browser asset versions were changed so a deployed client cannot retain the v0.4.8 remote-access bundle. Four focused cache-policy tests pass, including deactivation followed by offline restart and an interrupted membership refresh.
+- Local verification passes 27 schema/security tests and 31 iPhone/WebKit browser tests. The isolated live API suites and six live browser tests also pass, including immediate session revocation, reactivation, forced password change and offline reassignment; cleanup found zero tagged users or organisations. Deployment and a repeat of the physical-iPhone deactivation/restart check remain required before the fix is accepted.
+
 ## v0.4.8: desktop admin console
 
 - A separate desktop console provides central statistics, record inspection and assignments to Administrators. A separately provisioned server-side operator capability controls user administration and activity history.

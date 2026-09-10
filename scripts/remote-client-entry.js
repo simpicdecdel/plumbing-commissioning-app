@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getRemoteConfig } from '../remote-config.js';
+import { accessIsRestricted, beginOnlineAccessRefresh, cacheVerifiedMembership, readCachedAccess } from '../access-cache.js';
 
 const config = getRemoteConfig(window);
 const listeners = new Set();
@@ -49,19 +50,19 @@ async function resolveState(session, recovery = isRecovery()) {
   if (user) {
     try {
       if (!navigator.onLine) {
-        const cached = JSON.parse(localStorage.getItem(membershipKey) || 'null');
-        const cachedControls = JSON.parse(localStorage.getItem(controlsKey) || 'null');
-        if (cachedControls?.userId === user.id) controls = cachedControls.controls;
-        if (cached?.userId === user.id) membership = cached.membership;
+        ({ controls, membership } = readCachedAccess(localStorage, {
+          membershipKey, controlsKey, userId: user.id
+        }));
       } else {
         const response = await client.rpc('get_my_access_controls');
         if (response.error) throw response.error;
         controls = response.data || controls;
-        if (request === resolving) localStorage.setItem(controlsKey,JSON.stringify({userId:user.id,controls}));
-        membership = await loadMembership(user);
+        if (request === resolving) beginOnlineAccessRefresh(localStorage, {
+          membershipKey, controlsKey, userId: user.id, controls
+        });
+        membership = accessIsRestricted(controls) ? null : await loadMembership(user);
         if (request === resolving) {
-          if (membership) localStorage.setItem(membershipKey, JSON.stringify({ userId: user.id, membership }));
-          else localStorage.removeItem(membershipKey);
+          cacheVerifiedMembership(localStorage, { membershipKey, userId: user.id, membership });
         }
       }
     }

@@ -96,7 +96,7 @@ To add users, use the local [user provisioning tool](docs/user-provisioning.md).
 
 The [desktop admin console](docs/admin-console.md) adds organisation statistics and central record inspection for administrators, plus user management and activity history for explicitly granted super administrators. Its database migration and Edge Function must be deployed before the v0.4.8 client.
 
-The production migration, single-operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Production console workflows and the required physical-iPhone acceptance checks remain outstanding; see [release verification](docs/release-verification.md).
+The production migration, single-operator bootstrap, Edge Function and v0.4.8 GitHub Pages client were confirmed deployed on 9 September 2026. Physical acceptance on 10 September exposed stale offline access after a Technician account had been deactivated online. The v0.4.9 candidate fails closed when cached controls are absent or restricted; deployment and a physical-iPhone retest remain outstanding. See [release verification](docs/release-verification.md).
 
 ## Automated iPhone-style testing
 
@@ -133,7 +133,7 @@ For Playwright's interactive runner:
 pnpm test:iphone:ui
 ```
 
-The browser suite checks the v0.4.8 mobile header and overflow, PWA assets, service-worker control and fresh database responses, IndexedDB persistence, autosave, backup restoration, invalid-backup rejection, search, unit fault validation, password recovery, cross-device synchronisation, offline queueing and both conflict-resolution choices. It also checks local sign-in and organisation gates, technician restrictions, pending work after re-login and backup-confirmed local upload. Authentication and synchronisation tests use a mocked remote client except the recovery-callback test. Schema tests inspect migrations and public configuration and exercise service-worker caching. The normal suite does not access Supabase. GitHub Actions runs it for pull requests and changes to `main`.
+The browser suite checks the v0.4.9 mobile header and overflow, PWA assets, service-worker control and fresh database responses, IndexedDB persistence, autosave, backup restoration, invalid-backup rejection, search, unit fault validation, password recovery, cross-device synchronisation, offline queueing and both conflict-resolution choices. It also checks local sign-in and organisation gates, technician restrictions, pending work after re-login and backup-confirmed local upload. Authentication and synchronisation tests use a mocked remote client except the recovery-callback test. Schema tests inspect migrations and public configuration, exercise service-worker caching, and verify that offline membership cannot survive a restricted or interrupted access refresh. The normal suite does not access Supabase. GitHub Actions runs it for pull requests and changes to `main`.
 
 Before a field release, repeat the critical flows on at least one physical iPhone, including installation and a reload with connectivity disabled. Playwright's Windows WebKit build does not reliably emulate an offline Mobile Safari reload. The WebKit profile is useful automated coverage, not proof of real-iOS compatibility.
 

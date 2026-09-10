@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en-AU">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin console · Plumbing Commissioning</title><link rel="stylesheet" href="admin.css?v=0.4.8"></head>
+  <title>Admin console · Plumbing Commissioning</title><link rel="stylesheet" href="admin.css?v=0.4.9"></head>
 <body>
   <header><div><small>PLUMBING COMMISSIONING</small><h1>Admin console</h1></div><div class="header-links"><span id="identity"></span><a href="./">Field app</a><button id="signOut" hidden>Sign out</button></div></header>
   <main>
@@ -18,5 +18,5 @@
   </main>
   <dialog id="userDialog"><form id="createUser"><h2>Add user</h2><div class="grid"><label>First name<input name="firstName" required maxlength="100"></label><label>Surname<input name="surname" required maxlength="100"></label></div><label>Email<input name="email" type="email" required></label><label>Role<select name="role"><option value="technician">Technician</option><option value="administrator">Administrator</option></select></label><label>Initial password<input name="password" type="password" minlength="8" maxlength="256" required autocomplete="new-password"></label><p>New users must change their initial password before accessing records. No invitation email is sent.</p><p id="createMessage" role="status"></p><div class="toolbar"><button class="primary">Create user</button><button type="button" data-close="userDialog">Cancel</button></div></form></dialog>
   <dialog id="recordDialog"><div class="section-heading"><h2 id="recordTitle">Record</h2><button data-close="recordDialog">Close</button></div><div id="recordDetails"></div><label id="assignmentLabel">Assigned technician<select id="assignment"></select></label><div class="toolbar"><button id="saveAssignment">Save assignment</button><button id="recordLifecycle"></button><button id="printRecord">Print</button><button id="exportRecord">Export JSON</button></div><details><summary>Full stored record</summary><pre id="recordJson"></pre></details></dialog>
-  <script src="config.js?v=0.4.8"></script><script src="vendor/remote-client.min.js?v=0.4.8"></script><script src="admin.js?v=0.4.8"></script>
+  <script src="config.js?v=0.4.9"></script><script src="vendor/remote-client.min.js?v=0.4.9-offline-access"></script><script src="admin.js?v=0.4.9"></script>
 </body></html>
